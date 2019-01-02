@@ -1,0 +1,9 @@
+[package]
+name = "example_p2p"
+version = "0.1.0"
+authors = ["Carlos B <carlos.baezruiz@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+tokio = "0.1.13"
+tokio-codec = "0.1.0"
