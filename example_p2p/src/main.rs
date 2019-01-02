@@ -1,10 +1,11 @@
 extern crate tokio;
 extern crate tokio_codec;
 
+
+use tokio::codec::Decoder;
 use tokio_codec::BytesCodec;
 use tokio::prelude::*;
 use tokio::net::TcpListener;
-use tokio::codec::Decoder;
 
 fn main() {
     let addr = "127.0.0.1:12345".parse().unwrap();
