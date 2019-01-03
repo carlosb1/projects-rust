@@ -18,7 +18,7 @@ fn main () {
 
      let bytes = serialized.as_bytes(); 
      let extracted_serialized = String::from_utf8_lossy(bytes);
-    let deserialized: Point = serde_json::from_str(&extracted_serialized).unwrap();
+     let deserialized: Point = serde_json::from_str(&extracted_serialized).unwrap();
     println!("deserialized = {:?}", deserialized);
 }
 
