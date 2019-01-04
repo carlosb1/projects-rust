@@ -66,7 +66,7 @@ impl<'a> Elem<'a> {
 
 
 //TODO add for bucket
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Node<'a> {
     identifier: &'a str,
@@ -98,10 +98,10 @@ pub struct Application<'a> {
 }
 
 impl<'a> Application<'a> {
-    fn join(&self, node: &Node) {
-        self.hash_map.insert(node, node.identifier);
+    fn join(&mut self, node: Node<'a>) {
+        let str_sha = String::from_utf8(node.clone().sha_id).unwrap();
+        self.hash_map.insert(str_sha, node);
     }
-
 }
 
 
