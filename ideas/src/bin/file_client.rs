@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate crypto;
-extern crate blake2;
 extern crate serde;
 extern crate serde_json;
 
