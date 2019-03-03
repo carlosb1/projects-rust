@@ -5,6 +5,8 @@ use libp2p::{
     tokio_codec::{FramedRead, LinesCodec}
 };
 
+// sh cargo run 
+// sh run /ip4/127.0.0.1/tcp/24915
 fn main() {
     env_logger::init();
     let local_key = secio::SecioKeyPair::ed25519_generated().unwrap();
@@ -53,12 +55,12 @@ fn main() {
             mdns: libp2p::mdns::Mdns::new().expect("Failed to create mDNS service"),    
         };
         behaviour.floodsub.subscribe(floodsub_topic.clone());
-        libp2p::Swarm::new(transport, behaviour, local_peer_id);
+        libp2p::Swarm::new(transport, behaviour, local_peer_id)
 
     };
 
 
-    let addr = libp2p::Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse().unwrap().unwrap());
+    let addr = libp2p::Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse().unwrap()).unwrap();
     println!("Listening on {:?}", addr);
 
     if let Some(to_dial) = std::env::args().nth(1) {
