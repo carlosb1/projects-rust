@@ -5,6 +5,53 @@ use libp2p::{
     tokio_codec::{FramedRead, LinesCodec}
 };
 
+use std::str;
+
+#[derive(NetworkBehaviour)]
+struct MyBehaviour<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> {
+    floodsub: libp2p::floodsub::Floodsub<TSubstream>,
+    mdns: libp2p::mdns::Mdns<TSubstream>,
+    #[behaviour(ignore)]
+    addresses: Vec<String>,
+}
+
+
+impl<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> libp2p::core::swarm::NetworkBehaviourEventProcess<libp2p::mdns::MdnsEvent> for MyBehaviour<TSubstream> {
+    fn inject_event(&mut self, event: libp2p::mdns::MdnsEvent) {
+        match event {
+            libp2p::mdns::MdnsEvent::Discovered(list) => {
+                for (peer, _) in list {
+                    self.floodsub.add_node_to_partial_view(peer);
+                }
+            },
+            libp2p::mdns::MdnsEvent::Expired(list) => {
+                for (peer, _) in list {
+                    if !self.mdns.has_node(&peer) {
+                        self.floodsub.remove_node_from_partial_view(&peer);
+                    }
+                }
+            }
+        } 
+    }
+
+}
+
+
+//TODO class to parse values
+impl<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> libp2p::core::swarm::NetworkBehaviourEventProcess<libp2p::floodsub::FloodsubEvent> for MyBehaviour<TSubstream> {
+    fn inject_event(&mut self, message: libp2p::floodsub::FloodsubEvent) {
+        if let libp2p::floodsub::FloodsubEvent::Message(message) = message {
+            println!("Received '{:?}' from {:?}", String::from_utf8_lossy(&message.data), message.source);
+            println!("---> my bytes {:?}", message.source.to_base58());
+            if !self.addresses.contains(&message.source.to_base58()) {
+                self.addresses.push(message.source.to_base58());
+            }
+        }
+    }
+}
+
+
+
 // sh cargo run 
 // sh run /ip4/127.0.0.1/tcp/24915
 fn main() {
@@ -16,43 +63,13 @@ fn main() {
 
     let floodsub_topic = libp2p::floodsub::TopicBuilder::new("chat").build();
 
-    #[derive(NetworkBehaviour)]
-    struct MyBehaviour<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> {
-        floodsub: libp2p::floodsub::Floodsub<TSubstream>,
-        mdns: libp2p::mdns::Mdns<TSubstream>,
-    }
-
-    impl<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> libp2p::core::swarm::NetworkBehaviourEventProcess<libp2p::mdns::MdnsEvent> for MyBehaviour<TSubstream> {
-        fn inject_event(&mut self, event: libp2p::mdns::MdnsEvent) {
-            match event {
-                libp2p::mdns::MdnsEvent::Discovered(list) => {
-                    for (peer, _) in list {
-                        self.floodsub.add_node_to_partial_view(peer);
-                    }
-                },
-                libp2p::mdns::MdnsEvent::Expired(list) => {
-                    for (peer, _) in list {
-                        if !self.mdns.has_node(&peer) {
-                            self.floodsub.remove_node_from_partial_view(&peer);
-                        }
-                    }
-                }
-            } 
-        }
     
-    }
-    impl<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> libp2p::core::swarm::NetworkBehaviourEventProcess<libp2p::floodsub::FloodsubEvent> for MyBehaviour<TSubstream> {
-        fn inject_event(&mut self, message: libp2p::floodsub::FloodsubEvent) {
-            if let libp2p::floodsub::FloodsubEvent::Message(message) = message {
-                println!("Received '{:?}' from {:?}", String::from_utf8_lossy(&message.data), message.source);
-            }
-        }
-    }
-
+    // lambda function to initialise values
     let mut swarm =  {
         let mut behaviour = MyBehaviour {
             floodsub: libp2p::floodsub::Floodsub::new(local_peer_id.clone()),
-            mdns: libp2p::mdns::Mdns::new().expect("Failed to create mDNS service"),    
+            mdns: libp2p::mdns::Mdns::new().expect("Failed to create mDNS service"),
+            addresses: Vec::new(),
         };
         behaviour.floodsub.subscribe(floodsub_topic.clone());
         libp2p::Swarm::new(transport, behaviour, local_peer_id)
@@ -63,6 +80,7 @@ fn main() {
     let addr = libp2p::Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse().unwrap()).unwrap();
     println!("Listening on {:?}", addr);
 
+    // get value
     if let Some(to_dial) = std::env::args().nth(1) {
         let dialing = to_dial.clone();
         match to_dial.parse() {
@@ -74,6 +92,7 @@ fn main() {
             }, Err(err) => println!("Failed to parse address to dial {:?}", err)
         }
     }
+
     let stdin = tokio_stdin_stdout::stdin(0);
     let mut framed_stdin = FramedRead::new(stdin, LinesCodec::new());
 
@@ -85,7 +104,6 @@ fn main() {
                     Async::NotReady => break,
                 };
             }
-
             loop {
                 match swarm.poll().expect("Error while polling swarm") {
                     Async::Ready(Some(_)) => {
