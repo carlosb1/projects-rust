@@ -5,14 +5,21 @@ use libp2p::{
     tokio_codec::{FramedRead, LinesCodec}
 };
 
-use std::str;
+struct NodeManager {
+    pub addresses: Vec<String>,
+}
+impl NodeManager {
+    fn new() -> NodeManager {
+        NodeManager{addresses: Vec::new()}
+    }
+}
 
 #[derive(NetworkBehaviour)]
 struct MyBehaviour<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> {
     floodsub: libp2p::floodsub::Floodsub<TSubstream>,
     mdns: libp2p::mdns::Mdns<TSubstream>,
     #[behaviour(ignore)]
-    addresses: Vec<String>,
+    node_manager: NodeManager,
 }
 
 
@@ -43,8 +50,8 @@ impl<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> lib
         if let libp2p::floodsub::FloodsubEvent::Message(message) = message {
             println!("Received '{:?}' from {:?}", String::from_utf8_lossy(&message.data), message.source);
             println!("---> my bytes {:?}", message.source.to_base58());
-            if !self.addresses.contains(&message.source.to_base58()) {
-                self.addresses.push(message.source.to_base58());
+            if !self.node_manager.addresses.contains(&message.source.to_base58()) {
+                self.node_manager.addresses.push(message.source.to_base58());
             }
         }
     }
@@ -69,7 +76,7 @@ fn main() {
         let mut behaviour = MyBehaviour {
             floodsub: libp2p::floodsub::Floodsub::new(local_peer_id.clone()),
             mdns: libp2p::mdns::Mdns::new().expect("Failed to create mDNS service"),
-            addresses: Vec::new(),
+            node_manager: NodeManager::new(),
         };
         behaviour.floodsub.subscribe(floodsub_topic.clone());
         libp2p::Swarm::new(transport, behaviour, local_peer_id)
