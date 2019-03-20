@@ -1,5 +1,5 @@
 use futures::prelude::*;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use libp2p::{
     NetworkBehaviour,
@@ -25,7 +25,7 @@ struct MyBehaviour<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::A
     floodsub: libp2p::floodsub::Floodsub<TSubstream>,
     mdns: libp2p::mdns::Mdns<TSubstream>,
     #[behaviour(ignore)]
-    node_manager: Arc<NodeManager>,
+    node_manager: Arc<Mutex<NodeManager>>,
 }
 
 
@@ -55,13 +55,8 @@ impl<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> lib
         if let libp2p::floodsub::FloodsubEvent::Message(message) = message {
             println!("Received '{:?}' from {:?}", String::from_utf8_lossy(&message.data), message.source);
             println!("---> my bytes {:?}", message.source.to_base58());
-            if !self.node_manager.addresses.contains(&message.source.to_base58()) {
-                //(*self.node_manager).clone().say_hello();
-                let mut cloned = (*self.node_manager).addresses.clone();
-                cloned.push(message.source.to_base58());
-                //TODO Apply boxes!
-                //(*self.node_manager.addresses) = cloned;
-                //let values = (*self.node_manager.addresses);
+            if !self.node_manager.lock().unwrap().addresses.contains(&message.source.to_base58()) {
+                (*self.node_manager).lock().unwrap().addresses.push(message.source.to_base58());
             }
         }
     }
@@ -82,7 +77,7 @@ fn main() {
     let floodsub_topic = libp2p::floodsub::TopicBuilder::new("chat").build();
 
     let  node_manager: NodeManager =  NodeManager::new();
-    let rc_node = Arc::new(node_manager);
+    let rc_node = Arc::new(Mutex::new(node_manager));
 
     // lambda function to initialise values
     let mut swarm =  {
@@ -120,7 +115,7 @@ fn main() {
             loop {
                 match framed_stdin.poll().expect("Error while polling stdin") {
                     Async::Ready(Some(line)) => {
-                        (*rc_node).clone().say_hello();
+                        (*rc_node).lock().unwrap().clone().say_hello();
                         swarm.floodsub.publish(&floodsub_topic, line.as_bytes())
                     },
                     Async::Ready(None) => panic!("Stdin closed"),
