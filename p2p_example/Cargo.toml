@@ -4,10 +4,13 @@ version = "0.1.0"
 authors = ["Carlos B <mcflurry0@gmail.com>"]
 edition = "2018"
 
-[dependencies]
+[[bin]]
+name="my_chat"
+path="src/my_chat.rs"
 
+[dependencies]
 futures = "0.1"
 env_logger = "0.6.0"
-libp2p = "0.4.2"
+libp2p = "0.8.1"
 tokio = "0.1"
 tokio-stdin-stdout = "0.1"

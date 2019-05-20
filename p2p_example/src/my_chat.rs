@@ -2,8 +2,10 @@ use futures::prelude::*;
 use std::sync::{Arc, Mutex};
 
 use libp2p::{
+    PeerId,
+    Swarm,
+    identity,
     NetworkBehaviour,
-    secio,
     tokio_codec::{FramedRead, LinesCodec}
 };
 
@@ -69,8 +71,8 @@ impl<TSubstream: libp2p::tokio_io::AsyncRead + libp2p::tokio_io::AsyncWrite> lib
 // sh run /ip4/127.0.0.1/tcp/24915
 fn main() {
     env_logger::init();
-    let local_key = secio::SecioKeyPair::ed25519_generated().unwrap();
-    let local_peer_id = local_key.to_peer_id();
+    let local_key = identity::Keypair::generate_ed25519();
+    let local_peer_id = PeerId::from(local_key.public());
 
     let transport = libp2p::build_development_transport(local_key);
 
