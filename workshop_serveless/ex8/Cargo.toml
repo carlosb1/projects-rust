@@ -1,7 +1,7 @@
 [package]
-name = "queue-example"
+name = "timer-example"
 version = "0.1.0"
-authors = ["Peter Huene <peterehuene@protonmail.com>"]
+authors = ["Peter Huene <peterhuene@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
