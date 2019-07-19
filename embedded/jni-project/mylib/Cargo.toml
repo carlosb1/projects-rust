@@ -1,0 +1,9 @@
+[package]
+name = "mylib"
+version = "0.1.0"
+authors = ["Josh Chase <josh@prevoty.com>"]
+
+[dependencies]
+jni = "0.12.2"
+[lib]
+crate_type = ["cdylib"]
