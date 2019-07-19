@@ -142,5 +142,37 @@ fn main() {
             }
             Ok(Async::NotReady)
     }));
+} 
 
+
+pub trait UIEntrypoint {
+    fn subscribe(&mut self, channel: String);
+    fn send_message(&mut self, data: Vec<u8>);
+}
+
+struct Client {
+   channels: Vec<String> 
+}
+impl Client {
+    fn new () -> Client {
+        Client {channels: Vec::new()}
+    }
+}
+
+impl UIEntrypoint for Client {
+    fn subscribe(&mut self, channel: String) {
+        self.channels.push(channel); 
+    }
+
+    fn send_message(&mut self, data: Vec<u8>) {
+         
+    }
+}
+
+
+
+#[test]
+fn my_first_test() {
+
+    assert_eq!(2, 2);
 }
