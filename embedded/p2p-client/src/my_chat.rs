@@ -150,12 +150,20 @@ pub trait UIEntrypoint {
     fn send_message(&mut self, data: Vec<u8>);
 }
 
+//TODO explain why it is mutable
+#[derive(Clone)]
 struct Client {
    channels: Vec<String> 
 }
+
 impl Client {
     fn new () -> Client {
         Client {channels: Vec::new()}
+    }
+    
+    //TODO add a macro for this
+    fn get_channels(&mut self)-> &Vec<String> {
+        &self.channels
     }
 }
 
@@ -163,7 +171,6 @@ impl UIEntrypoint for Client {
     fn subscribe(&mut self, channel: String) {
         self.channels.push(channel); 
     }
-
     fn send_message(&mut self, data: Vec<u8>) {
          
     }
@@ -173,6 +180,10 @@ impl UIEntrypoint for Client {
 
 #[test]
 fn my_first_test() {
+    //TODO explain mutable / not mutable
+    let mut client = Client::new(); 
+    client.subscribe("reus".to_string());
+    assert_eq!(client.get_channels().len(), 1);
 
-    assert_eq!(2, 2);
+
 }
