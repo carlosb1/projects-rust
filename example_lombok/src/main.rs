@@ -2,9 +2,12 @@
 
 
 #[derive(GetterSetter)]
-struct Dog;
+struct Dog {
+    number: u32,
+}
 
 fn main() {
     println!("Hello, world!");
-    let _dog = Dog{};
+    let _dog = Dog{number: 1};
+    _dog.helloworld();
 }
