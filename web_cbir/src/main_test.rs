@@ -1,8 +1,12 @@
 use kdtree::KdTree;
-use kdtree::ErrorKind;
 use kdtree::distance::squared_euclidean;
 
 
+#[derive(Debug)]
+pub enum ApiError {
+    NotFound,
+    InternalServerError,
+}
 
 struct UseCase {
 }
