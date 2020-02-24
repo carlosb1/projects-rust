@@ -1,7 +1,9 @@
+#![feature(rustc_private)]
 #![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate rocket_contrib;
 #[macro_use] extern crate serde_derive;
+extern crate serde_json;
 extern crate tera;
 
 mod routes;
@@ -19,6 +21,7 @@ fn rocket() -> rocket::Rocket {
                 static_files::file,
                 get::index,
                 get::single_page_app,
+                get::get_search,
             ],
         )
         .register(catchers![errors::not_found])
