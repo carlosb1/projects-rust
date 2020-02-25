@@ -5,12 +5,14 @@ authors = ["Carlos B <mcflurry0@gmail.com>"]
 edition = "2018"
 
 [[bin]]
-name="my_chat"
-path="src/my_chat.rs"
+name="distributed"
+path="src/distributed-key-value-store.rs"
 
 [dependencies]
-futures = "0.1"
-env_logger = "0.6.0"
-libp2p = "0.8.1"
+futures = "0.3.1"
+env_logger = "0.7.1"
+async-std="1.0"
+libp2p = "0.16.1"
+# libp2p-swarm = "0.16.1"
 tokio = "0.1"
 tokio-stdin-stdout = "0.1"
