@@ -1,34 +1,3 @@
-// Copyright 20l9 Parity Technologies (UK) Ltd.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the
-// Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-// DEALINGS IN THE SOFTWARE.
-
-//! A basic key value store demonstrating libp2p and the mDNS and Kademlia protocols.
-//!
-//! 1. Using two terminal windows, start two instances. If you local network
-//!    allows mDNS, they will automatically connect.
-//!
-//! 2. Type `PUT my-key my-value` in terminal one and hit return.
-//!
-//! 3. Type `GET my-key` in terminal two and hit return.
-//!
-//! 4. Close with Ctrl-c.
-
 use async_std::{io, task};
 use futures::prelude::*;
 use libp2p::kad::record::store::MemoryStore;
@@ -43,6 +12,7 @@ use libp2p::{
     swarm::NetworkBehaviourEventProcess
 };
 use std::{error::Error, task::{Context, Poll}};
+use std::sync::Arc;
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
@@ -118,6 +88,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Listen on all interfaces and whatever port the OS assigns.
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?)?;
 
+
+    pub struct Client {
+    };
+    impl Client {
+        fn parse(kademlia: & mut Kademlia<MemoryStore>, line: String){
+        }
+    }
     // Kick it off.
     let mut listening = false;
     task::block_on(future::poll_fn(move |cx: &mut Context| {
@@ -146,6 +123,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         Poll::Pending
     }))
 }
+
+
+
+
 
 fn handle_input_line(kademlia: &mut Kademlia<MemoryStore>, line: String) {
     let mut args = line.split(" ");
