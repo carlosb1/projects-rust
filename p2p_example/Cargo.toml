@@ -5,8 +5,8 @@ authors = ["Carlos B <mcflurry0@gmail.com>"]
 edition = "2018"
 
 [[bin]]
-name="distributed"
-path="src/distributed-key-value-store.rs"
+name="chat"
+path="src/chat-example.rs"
 
 [dependencies]
 futures = "0.3.1"
