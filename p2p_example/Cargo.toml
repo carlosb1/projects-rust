@@ -4,9 +4,21 @@ version = "0.1.0"
 authors = ["Carlos B <mcflurry0@gmail.com>"]
 edition = "2018"
 
+[lib]
+name='p2pchat'
+path='src/lib.rs'
+
 [[bin]]
 name="chat"
 path="src/chat-example.rs"
+
+[[bin]]
+name="chat-client"
+path="src/chat-client.rs"
+
+[[bin]]
+name="ipfs-kad"
+path="src/ipfs-kad.rs"
 
 [dependencies]
 futures = "0.3.1"

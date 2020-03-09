@@ -1,18 +1,16 @@
 use async_std::{io, task};
 use futures::prelude::*;
 use libp2p::kad::record::store::MemoryStore;
-use libp2p::kad::{record::Key, Kademlia, KademliaEvent, PutRecordOk, Quorum, Record};
+use libp2p::kad::{record::Key, Kademlia,  Quorum, Record};
 use libp2p::{
-    NetworkBehaviour,
     PeerId,
     Swarm,
     build_development_transport,
     identity,
-    mdns::{Mdns, MdnsEvent},
-    swarm::NetworkBehaviourEventProcess
+    mdns::{Mdns}
 };
 use std::{error::Error, task::{Context, Poll}};
-use std::sync::Arc;
+use p2pchat::MyBehaviour;
 
 fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
@@ -24,53 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Set up a an encrypted DNS-enabled TCP Transport over the Mplex protocol.
     let transport = build_development_transport(local_key)?;
 
-    // We create a custom network behaviour that combines Kademlia and mDNS.
-    #[derive(NetworkBehaviour)]
-    struct MyBehaviour {
-        kademlia: Kademlia<MemoryStore>,
-        mdns: Mdns
-    }
-
-    impl NetworkBehaviourEventProcess<MdnsEvent> for MyBehaviour {
-        // Called when `mdns` produces an event.
-        fn inject_event(&mut self, event: MdnsEvent) {
-            if let MdnsEvent::Discovered(list) = event {
-                for (peer_id, multiaddr) in list {
-                    self.kademlia.add_address(&peer_id, multiaddr);
-                }
-            }
-        }
-    }
-
-    impl NetworkBehaviourEventProcess<KademliaEvent> for MyBehaviour {
-        // Called when `kademlia` produces an event.
-        fn inject_event(&mut self, message: KademliaEvent) {
-            match message {
-                KademliaEvent::GetRecordResult(Ok(result)) => {
-                    for Record { key, value, .. } in result.records {
-                        println!(
-                            "Got record {:?} {:?}",
-                            std::str::from_utf8(key.as_ref()).unwrap(),
-                            std::str::from_utf8(&value).unwrap(),
-                        );
-                    }
-                }
-                KademliaEvent::GetRecordResult(Err(err)) => {
-                    eprintln!("Failed to get record: {:?}", err);
-                }
-                KademliaEvent::PutRecordResult(Ok(PutRecordOk { key })) => {
-                    println!(
-                        "Successfully put record {:?}",
-                        std::str::from_utf8(key.as_ref()).unwrap()
-                    );
-                }
-                KademliaEvent::PutRecordResult(Err(err)) => {
-                    eprintln!("Failed to put record: {:?}", err);
-                }
-                _ => {}
-            }
-        }
-    }
+  
 
     // Create a swarm to manage peers and events.
     let mut swarm = {
@@ -88,13 +40,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Listen on all interfaces and whatever port the OS assigns.
     Swarm::listen_on(&mut swarm, "/ip4/0.0.0.0/tcp/0".parse()?)?;
 
-
-    pub struct Client {
-    };
-    impl Client {
-        fn parse(kademlia: & mut Kademlia<MemoryStore>, line: String){
-        }
-    }
     // Kick it off.
     let mut listening = false;
     task::block_on(future::poll_fn(move |cx: &mut Context| {
@@ -123,10 +68,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         Poll::Pending
     }))
 }
-
-
-
-
 
 fn handle_input_line(kademlia: &mut Kademlia<MemoryStore>, line: String) {
     let mut args = line.split(" ");
