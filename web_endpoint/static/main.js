@@ -1,1 +1,0 @@
-alert("Replace me with main.js from the React Single Page App later")
