@@ -1,2 +1,4 @@
-    pub struct User;
-    pub struct Channel;
+#[derive(Clone)]    
+pub struct User;
+#[derive(Clone)]    
+pub struct Channel;
