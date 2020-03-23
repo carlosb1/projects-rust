@@ -1,7 +1,8 @@
 use rocket::request::{Outcome, FromRequest};
 use rocket::Outcome::Success;
 use rocket::Request;
-use mongodb::{Bson, doc};
+use mongodb::doc;
+use std::vec;
 use mongodb::{Client, ThreadedClient};
 use mongodb::coll::Collection;
 use mongodb::db::ThreadedDatabase;
@@ -34,7 +35,7 @@ impl UsersRepository {
         };
         let mut cursor = self.coll.unwrap().find(Some(user.clone()), None)
         .ok().expect("Failed to execute find.");
-        User {}
+        User{idname:"1".to_string(), idaddress:"1".to_string()}
     }    
 }
 impl<'a, 'r> FromRequest<'a, 'r> for UsersRepository  {
@@ -71,7 +72,8 @@ impl ChannelsRepository {
         };
         let mut cursor = self.coll.unwrap().find(Some(chan.clone()), None)
         .ok().expect("Failed to execute find.");
-        Channel {}
+        Channel {name:"".to_string(), users: Vec::new()}
+    
     }   
 }
 impl<'a, 'r> FromRequest<'a, 'r> for ChannelsRepository  {
