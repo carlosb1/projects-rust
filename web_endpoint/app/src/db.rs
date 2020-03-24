@@ -1,7 +1,7 @@
 use rocket::request::{Outcome, FromRequest};
 use rocket::Outcome::Success;
 use rocket::Request;
-use mongodb::doc;
+use mongodb::{doc, Error};
 use std::vec;
 use mongodb::{Client, ThreadedClient};
 use mongodb::coll::Collection;
@@ -22,20 +22,19 @@ impl UsersRepository {
     }
     pub fn create (self, user: User) {
         let chan = doc!{
-            "name": "",
-            "address": "",
+            "name": user.idname,
+            "address": user.idaddress,
         };
         self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
     }
 
-    pub fn get (self, id: String) -> User  {
+    pub fn get (self, id: String) -> Option<Result<mongodb::ordered::OrderedDocument,Error>>  {
         let user = doc!{
-            "user": "",
-             "address": "",
+            "user": id,
         };
         let mut cursor = self.coll.unwrap().find(Some(user.clone()), None)
         .ok().expect("Failed to execute find.");
-        User{idname:"1".to_string(), idaddress:"1".to_string()}
+        cursor.next()
     }    
 }
 impl<'a, 'r> FromRequest<'a, 'r> for UsersRepository  {
