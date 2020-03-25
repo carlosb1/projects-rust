@@ -70,18 +70,17 @@ impl ChannelsRepository {
     }
 
     pub fn create (self, channel: Channel) {
+        let mut bson_users: Vec<Bson> = channel.users.into_iter().map(|x| Bson::String(x)).collect(); 
         let chan = doc!{
             "name": channel.name,
-            "users": [],
+            "users": bson_users,
         };
         self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
     }
 
     pub fn get (self, id: String) -> Option<Channel> {
         let chan = doc!{
-            "name": "",
-    
-            "users": [],
+            "name": id,
         };
         let mut cursor = self.coll.unwrap().find(Some(chan.clone()), None)
         .ok().expect("Failed to execute find.");
