@@ -9,6 +9,7 @@ extern crate serde_json;
 mod entities;
 mod routes;
 mod db;
+mod usecases;
 
 use std::env;
 use crate::routes::{ static_files, get, users, channels};

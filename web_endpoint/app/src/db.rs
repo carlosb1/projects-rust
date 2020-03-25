@@ -2,7 +2,6 @@ use rocket::request::{Outcome, FromRequest};
 use rocket::Outcome::Success;
 use rocket::Request;
 use mongodb::{Bson, bson, doc};
-use std::vec;
 use mongodb::{Client, ThreadedClient};
 use mongodb::coll::Collection;
 use mongodb::db::ThreadedDatabase;
