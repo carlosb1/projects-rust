@@ -19,10 +19,7 @@ use db::{UsersRepository, ChannelsRepository};
 
 fn rocket() -> rocket::Rocket {
 
-    let db_host = match env::var("MONGODB_HOST") {
-        Ok(val) => val, 
-        Err(_) => "0.0.0.0".to_string(), 
-    };
+    let db_host  = env::var("MONGODB_HOST").unwrap_or("0.0.0.0".to_string());
 
     println!("-> DB host: {}", db_host);
 

@@ -1,7 +1,7 @@
 use rocket::request::{Outcome, FromRequest};
 use rocket::Outcome::Success;
 use rocket::Request;
-use mongodb::{doc, Error};
+use mongodb::{Bson, bson, doc};
 use std::vec;
 use mongodb::{Client, ThreadedClient};
 use mongodb::coll::Collection;
@@ -28,13 +28,26 @@ impl UsersRepository {
         self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
     }
 
-    pub fn get (self, id: String) -> Option<Result<mongodb::ordered::OrderedDocument,Error>>  {
+    pub fn get (self, id: String) -> Option<User>{
         let user = doc!{
             "user": id,
         };
         let mut cursor = self.coll.unwrap().find(Some(user.clone()), None)
         .ok().expect("Failed to execute find.");
-        cursor.next()
+        let result = match cursor.next() {
+            Some(val) => {
+                match val {
+                    Ok(doc) => {
+                        let _idname: String = doc.get_str("idname").unwrap_or("").to_string();
+                        let _idaddress:  String = doc.get_str("idaddress").unwrap_or("").to_string();
+                        Some(User{idname: _idname, idaddress: _idaddress})
+                    },
+                    Err(_) => None,
+                }
+            },
+            None => None,
+        };
+        result
     }    
 }
 impl<'a, 'r> FromRequest<'a, 'r> for UsersRepository  {
@@ -58,21 +71,34 @@ impl ChannelsRepository {
 
     pub fn create (self, channel: Channel) {
         let chan = doc!{
-            "name": "",
+            "name": channel.name,
             "users": [],
         };
         self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
     }
 
-    pub fn get (self, id: String) -> Channel  {
+    pub fn get (self, id: String) -> Option<Channel> {
         let chan = doc!{
             "name": "",
+    
             "users": [],
         };
         let mut cursor = self.coll.unwrap().find(Some(chan.clone()), None)
         .ok().expect("Failed to execute find.");
-        Channel {name:"".to_string(), users: Vec::new()}
-    
+        let result = match cursor.next() {
+            Some(val) => {
+                match val {
+                    Ok(doc) => {
+                        let _name: String = doc.get_str("name").unwrap_or("").to_string();
+                        let _users: Vec<String> = doc.get_array("users").unwrap_or(&Vec::new()).into_iter().map(|x| x.to_string()).collect();
+                        Some(Channel{name:_name, users: _users})
+                    },
+                    Err(_) => None,
+                }
+            },
+            None => None,
+        };
+        result
     }   
 }
 impl<'a, 'r> FromRequest<'a, 'r> for ChannelsRepository  {
