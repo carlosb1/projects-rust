@@ -1,15 +1,16 @@
 use crate::db::{UsersRepository, ChannelsRepository};
 use crate::entities::{User, Channel};
+use std::sync::Arc;
 
 pub struct  GetChannel {
-    db: Box<ChannelsRepository>
+    db: ChannelsRepository
 }
 
 impl GetChannel{
-    pub fn new(db: Box<ChannelsRepository>)->GetChannel {
+    pub fn new(db: ChannelsRepository)->GetChannel {
         GetChannel{db: db}
     }
-    pub fn run(&self, idchannel: String) -> Option<Channel> {
+    pub fn run(self, idchannel: String) -> Option<Channel> {
         //unwrap shared reference
         self.db.get(idchannel)    
     }
@@ -23,7 +24,7 @@ impl GetUser{
     pub fn new(db: Box<UsersRepository>)->GetUser {
         GetUser{db: db}
     }
-    pub fn run(&self, idname: String) -> Option<User> {
+    pub fn run(self, idname: String) -> Option<User> {
         //unwrap shared reference
         self.db.get(idname)    
     }
@@ -37,7 +38,7 @@ impl NewChannel{
     pub fn new(db: Box<ChannelsRepository>)->NewChannel {
         NewChannel{db: db}
     }
-    pub fn run(&self, channel: Channel) {
+    pub fn run(self, channel: Channel) {
         //unwrap shared reference
         self.db.create(channel)    
     }
@@ -51,7 +52,7 @@ impl NewUser{
     pub fn new(db: Box<UsersRepository>)->NewUser {
         NewUser{db: db}
     }
-    pub fn run(&self, user: User) {
+    pub fn run(self, user: User) {
         //unwrap shared reference
         self.db.create(user) 
     }

@@ -6,17 +6,19 @@ use mongodb::{Client, ThreadedClient};
 use mongodb::coll::Collection;
 use mongodb::db::ThreadedDatabase;
 
+use std::sync::Arc;
 use crate::entities::{User, Channel};
 
+#[derive(Clone)]
 pub struct UsersRepository {
-    coll: Option<Collection>,
+    coll: Option<Arc<Collection>>,
 }
 
 impl UsersRepository {
     pub fn new(host: String, port: u16) -> UsersRepository {
         let client = Client::connect(host.as_str(), port).expect("Failed to initialize standalone client.");
         let coll = client.db("test").collection("users");
-        UsersRepository{coll:Some(coll)}
+        UsersRepository{coll:Some(Arc::new(coll))}
 
     }
     pub fn create (self, user: User) {
@@ -58,14 +60,14 @@ impl<'a, 'r> FromRequest<'a, 'r> for UsersRepository  {
 }
 
 pub struct ChannelsRepository {
-    coll: Option<Collection>,
+    coll: Option<Arc<Collection>>,
 }
 
 impl ChannelsRepository {
     pub fn new(host: String, port: u16) -> ChannelsRepository {
         let client = Client::connect(host.as_str(), port).expect("Failed to initialize standalone client.");
         let coll = client.db("test").collection("channels");
-        ChannelsRepository{coll:Some(coll)}
+        ChannelsRepository{coll: Some(Arc::new(coll))}
     }
 
     pub fn create (self, channel: Channel) {

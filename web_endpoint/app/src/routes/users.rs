@@ -10,6 +10,6 @@ pub struct User {
 
 #[get("/users/<tag>")]
 pub fn get_user_info(db: UsersRepository, tag: String) -> Json<User> {
-    //GetUser::new(db).run(tag)
+    let _user = GetUser::new(Box::new(db)).run(tag);
     Json(User{address: "testuser".to_string()})
 }
