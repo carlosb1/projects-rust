@@ -2,7 +2,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use] extern crate rocket;
 #[macro_use] extern crate serde_derive;
-#[macro_use(bson, doc)] extern crate mongodb;
+extern crate mongodb;
 extern crate rocket_contrib;
 extern crate serde_json;
 
@@ -37,7 +37,9 @@ fn rocket() -> rocket::Rocket {
                 get::index,
                 get::single_page_app,
                 users::get_user_info,
+                users::post_new_user,
                 channels::get_user,
+                channels::post_channel,
             ],
         )
 }

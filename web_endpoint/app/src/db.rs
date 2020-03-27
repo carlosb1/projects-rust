@@ -71,7 +71,7 @@ impl ChannelsRepository {
     }
 
     pub fn create (self, channel: Channel) {
-        let mut bson_users: Vec<Bson> = channel.users.into_iter().map(|x| Bson::String(x)).collect(); 
+        let bson_users: Vec<Bson> = channel.users.into_iter().map(|x| Bson::String(x)).collect(); 
         let chan = doc!{
             "name": channel.name,
             "users": bson_users,

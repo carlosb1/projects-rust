@@ -1,8 +1,7 @@
 use crate::db::{UsersRepository, ChannelsRepository};
 use crate::entities::{User, Channel};
-use std::sync::Arc;
 
-pub struct  GetChannel {
+pub struct GetChannel {
     db: ChannelsRepository
 }
 
@@ -16,7 +15,7 @@ impl GetChannel{
     }
 }
 
-pub struct  GetUser {
+pub struct GetUser {
     db: Box<UsersRepository>
 }
 
@@ -30,7 +29,7 @@ impl GetUser{
     }
 }
 
-struct  NewChannel {
+pub struct  NewChannel {
     db: Box<ChannelsRepository>
 }
 
@@ -44,7 +43,7 @@ impl NewChannel{
     }
 }
 
-struct  NewUser {
+pub struct  NewUser {
     db: Box<UsersRepository>
 }
 
