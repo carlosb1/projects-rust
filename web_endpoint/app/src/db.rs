@@ -34,6 +34,7 @@ impl UsersRepository {
         let coll = client.db("test").collection("users");
         let _update = doc!{
             "name": user.idname.clone(),
+            "address": user.idaddress.clone(),
         };
         let _filter = doc!{
             "name": user.idname.clone(),
@@ -49,7 +50,7 @@ impl UsersRepository {
         let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
         let coll = client.db("test").collection("users");
         let user = doc!{
-            "user": id,
+            "name": id,
         };
         let mut cursor = coll.find(Some(user.clone()), None)
         .ok().expect("Failed to execute find.");
@@ -57,8 +58,8 @@ impl UsersRepository {
             Some(val) => {
                 match val {
                     Ok(doc) => {
-                        let _idname: String = doc.get_str("idname").unwrap_or("").to_string();
-                        let _idaddress:  String = doc.get_str("idaddress").unwrap_or("").to_string();
+                        let _idname: String = doc.get_str("name").unwrap_or("").to_string();
+                        let _idaddress:  String = doc.get_str("address").unwrap_or("").to_string();
                         Some(User{idname: _idname, idaddress: _idaddress})
                     },
                     Err(_) => None,

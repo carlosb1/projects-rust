@@ -1,3 +1,5 @@
+use std::fmt;
+
 use rocket::Outcome::Success;
 use rocket::Request;
 
@@ -28,6 +30,13 @@ impl FromDataSimple for User {
     }
 }
 
+impl fmt::Display for User {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.idname, self.idaddress)
+    }
+}
+
+
 #[derive(Serialize)]
 #[derive(Deserialize)]
 #[derive(Clone)]    
@@ -46,5 +55,11 @@ impl FromDataSimple for Channel {
             Ok(value) => Success(value),
             Err(e) => Failure((Status::BadRequest, e.to_string())),
         }
+    }
+}
+
+impl fmt::Display for Channel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {:?})", self.name, self.users)
     }
 }

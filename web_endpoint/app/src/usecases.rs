@@ -16,11 +16,11 @@ impl GetChannel{
 }
 
 pub struct GetUser {
-    db: Box<UsersRepository>
+    db: UsersRepository
 }
 
 impl GetUser{
-    pub fn new(db: Box<UsersRepository>)->GetUser {
+    pub fn new(db: UsersRepository)->GetUser {
         GetUser{db: db}
     }
     pub fn run(self, idname: String) -> Option<User> {
@@ -30,11 +30,11 @@ impl GetUser{
 }
 
 pub struct  NewChannel {
-    db: Box<ChannelsRepository>
+    db: ChannelsRepository
 }
 
 impl NewChannel{
-    pub fn new(db: Box<ChannelsRepository>)->NewChannel {
+    pub fn new(db: ChannelsRepository)->NewChannel {
         NewChannel{db: db}
     }
     pub fn run(self, channel: Channel) {
@@ -44,11 +44,11 @@ impl NewChannel{
 }
 
 pub struct  NewUser {
-    db: Box<UsersRepository>
+    db: UsersRepository
 }
 
 impl NewUser{
-    pub fn new(db: Box<UsersRepository>)->NewUser {
+    pub fn new(db: UsersRepository)->NewUser {
         NewUser{db: db}
     }
     pub fn run(self, user: User) {
@@ -58,11 +58,11 @@ impl NewUser{
 }
 
 pub struct UpdateUser {
-    db: Box<UsersRepository>
+    db: UsersRepository
 }
 
 impl UpdateUser {
-    pub fn new (db: Box<UsersRepository>) -> UpdateUser  {
+    pub fn new (db: UsersRepository) -> UpdateUser  {
             UpdateUser{db: db}
         }
     pub fn run (self, user: User) {
@@ -72,11 +72,11 @@ impl UpdateUser {
 
 
 pub struct UpdateChannel {
-    db: Box<ChannelsRepository>
+    db: ChannelsRepository
 }
 
 impl UpdateChannel {
-    pub fn new (db: Box<ChannelsRepository>) -> UpdateChannel  {
+    pub fn new (db: ChannelsRepository) -> UpdateChannel  {
             UpdateChannel{db: db}
         }
     pub fn run (self, channel: Channel) {
