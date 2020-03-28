@@ -3,34 +3,35 @@ use rocket::Outcome::Success;
 use rocket::Request;
 use mongodb::{Bson, bson, doc};
 use mongodb::{Client, ThreadedClient};
-use mongodb::coll::Collection;
 use mongodb::coll::options::{FindOneAndUpdateOptions};
 use mongodb::db::ThreadedDatabase;
 
-use std::sync::Arc;
 use crate::entities::{User, Channel};
 
 #[derive(Clone)]
 pub struct UsersRepository {
-    coll: Option<Arc<Collection>>,
+    host: String,
+    port: u16,
 }
 
 impl UsersRepository {
     pub fn new(host: String, port: u16) -> UsersRepository {
-        let client = Client::connect(host.as_str(), port).expect("Failed to initialize standalone client.");
-        let coll = client.db("test").collection("users");
-        UsersRepository{coll:Some(Arc::new(coll))}
+        UsersRepository{host:host, port: port}
 
     }
     pub fn create (self, user: User) {
+        let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
+        let coll = client.db("test").collection("users");
         let chan = doc!{
             "name": user.idname,
             "address": user.idaddress,
         };
-        self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
+        coll.insert_one(chan.clone(), None).ok().expect("Failed to insert document");
     }
 
     pub fn put (self, user: User) {
+        let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
+        let coll = client.db("test").collection("users");
         let _update = doc!{
             "name": user.idname.clone(),
         };
@@ -39,16 +40,18 @@ impl UsersRepository {
         };
 
         let options = FindOneAndUpdateOptions::new();
-        let _ = self.coll.unwrap().find_one_and_update(_filter, _update, Some(options));
+        let _ = coll.find_one_and_update(_filter, _update, Some(options));
     }
 
 
 
     pub fn get (self, id: String) -> Option<User>{
+        let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
+        let coll = client.db("test").collection("users");
         let user = doc!{
             "user": id,
         };
-        let mut cursor = self.coll.unwrap().find(Some(user.clone()), None)
+        let mut cursor = coll.find(Some(user.clone()), None)
         .ok().expect("Failed to execute find.");
         let result = match cursor.next() {
             Some(val) => {
@@ -69,32 +72,34 @@ impl UsersRepository {
 impl<'a, 'r> FromRequest<'a, 'r> for UsersRepository  {
     type Error = ();
     fn from_request (_request: &'a Request<'r>) -> Outcome<Self, Self::Error>  {
-        let _host = "0.0.0.0".to_string();
-        Success(UsersRepository{coll: None})
+        Success(UsersRepository{host: "".to_string(),port: 0})
     }
 }
 
 pub struct ChannelsRepository {
-    coll: Option<Arc<Collection>>,
+    host: String,
+    port: u16,
 }
 
 impl ChannelsRepository {
     pub fn new(host: String, port: u16) -> ChannelsRepository {
-        let client = Client::connect(host.as_str(), port).expect("Failed to initialize standalone client.");
-        let coll = client.db("test").collection("channels");
-        ChannelsRepository{coll: Some(Arc::new(coll))}
+        ChannelsRepository{host: host, port: port}
     }
 
     pub fn create (self, channel: Channel) {
+        let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
+        let coll = client.db("test").collection("channels");
         let bson_users: Vec<Bson> = channel.users.into_iter().map(|x| Bson::String(x)).collect(); 
         let chan = doc!{
             "name": channel.name,
             "users": bson_users,
         };
-        self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
+        coll.insert_one(chan.clone(), None).ok().expect("Failed to insert document");
     }
 
     pub fn put (self, channel: Channel) {
+        let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
+        let coll = client.db("test").collection("channels");
         let bson_users: Vec<Bson> = channel.users.into_iter().map(|x| Bson::String(x)).collect(); 
         let _update = doc!{
             "name": channel.name.clone(),
@@ -105,14 +110,16 @@ impl ChannelsRepository {
         };
 
         let options = FindOneAndUpdateOptions::new();
-        let _ = self.coll.unwrap().find_one_and_update(_filter, _update, Some(options));
+        let _ = coll.find_one_and_update(_filter, _update, Some(options));
     }
 
     pub fn get (self, id: String) -> Option<Channel> {
+        let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
+        let coll = client.db("test").collection("channels");
         let chan = doc!{
             "name": id,
         };
-        let mut cursor = self.coll.unwrap().find(Some(chan.clone()), None)
+        let mut cursor = coll.find(Some(chan.clone()), None)
         .ok().expect("Failed to execute find.");
         let result = match cursor.next() {
             Some(val) => {
@@ -133,8 +140,7 @@ impl ChannelsRepository {
 impl<'a, 'r> FromRequest<'a, 'r> for ChannelsRepository  {
     type Error = ();
     fn from_request (_request: &'a Request<'r>) -> Outcome<Self, Self::Error>  {
-       let _host = "0.0.0.0".to_string();
-       Success(ChannelsRepository{coll:None}) 
+       Success(ChannelsRepository{host: "".to_string(), port: 0}) 
     }
 }
 

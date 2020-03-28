@@ -39,7 +39,7 @@ impl NewChannel{
     }
     pub fn run(self, channel: Channel) {
         //unwrap shared reference
-        self.db.create(channel)    
+        self.db.create(channel); 
     }
 }
 
@@ -53,7 +53,7 @@ impl NewUser{
     }
     pub fn run(self, user: User) {
         //unwrap shared reference
-        self.db.create(user) 
+        self.db.create(user); 
     }
 }
 
