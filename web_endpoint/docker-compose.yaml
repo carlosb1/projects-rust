@@ -20,3 +20,13 @@ services:
       - ./app:/app
     expose:
       - "8000"
+  db:
+    image: mongo:latest
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    volumes:
+      - /opt/docker/db:/data/db
+    ports:
+        - 27017:27017
+    command: mongod --logpath=/dev/null # --quiet
