@@ -57,5 +57,30 @@ impl NewUser{
     }
 }
 
+pub struct UpdateUser {
+    db: Box<UsersRepository>
+}
 
+impl UpdateUser {
+    pub fn new (db: Box<UsersRepository>) -> UpdateUser  {
+            UpdateUser{db: db}
+        }
+    pub fn run (self, user: User) {
+        self.db.put(user); 
+    }
+}
+
+
+pub struct UpdateChannel {
+    db: Box<ChannelsRepository>
+}
+
+impl UpdateChannel {
+    pub fn new (db: Box<ChannelsRepository>) -> UpdateChannel  {
+            UpdateChannel{db: db}
+        }
+    pub fn run (self, channel: Channel) {
+        self.db.put(channel); 
+    }
+}
 

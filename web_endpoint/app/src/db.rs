@@ -4,6 +4,7 @@ use rocket::Request;
 use mongodb::{Bson, bson, doc};
 use mongodb::{Client, ThreadedClient};
 use mongodb::coll::Collection;
+use mongodb::coll::options::{FindOneAndUpdateOptions};
 use mongodb::db::ThreadedDatabase;
 
 use std::sync::Arc;
@@ -28,6 +29,20 @@ impl UsersRepository {
         };
         self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
     }
+
+    pub fn put (self, user: User) {
+        let _update = doc!{
+            "name": user.idname.clone(),
+        };
+        let _filter = doc!{
+            "name": user.idname.clone(),
+        };
+
+        let options = FindOneAndUpdateOptions::new();
+        let _ = self.coll.unwrap().find_one_and_update(_filter, _update, Some(options));
+    }
+
+
 
     pub fn get (self, id: String) -> Option<User>{
         let user = doc!{
@@ -77,6 +92,20 @@ impl ChannelsRepository {
             "users": bson_users,
         };
         self.coll.unwrap().insert_one(chan.clone(), None).ok().expect("Failed to insert document");
+    }
+
+    pub fn put (self, channel: Channel) {
+        let bson_users: Vec<Bson> = channel.users.into_iter().map(|x| Bson::String(x)).collect(); 
+        let _update = doc!{
+            "name": channel.name.clone(),
+            "users": bson_users,
+        };
+        let _filter = doc!{
+            "name": channel.name.clone(),
+        };
+
+        let options = FindOneAndUpdateOptions::new();
+        let _ = self.coll.unwrap().find_one_and_update(_filter, _update, Some(options));
     }
 
     pub fn get (self, id: String) -> Option<Channel> {

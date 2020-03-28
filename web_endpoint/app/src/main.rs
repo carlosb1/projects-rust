@@ -38,8 +38,10 @@ fn rocket() -> rocket::Rocket {
                 get::single_page_app,
                 users::get_user_info,
                 users::post_new_user,
+                users::put_user,
                 channels::get_user,
                 channels::post_channel,
+                channels::put_channel,
             ],
         )
 }
