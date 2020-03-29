@@ -5,4 +5,4 @@ COPY . .
 ENV ROCKET_ENV production
 RUN cargo clean
 RUN cargo build
-CMD cargo run --release
+CMD cargo run --bin main --release
