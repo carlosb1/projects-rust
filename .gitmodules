@@ -1,0 +1,3 @@
+[submodule "web_endpoint/MeiliSearch"]
+	path = web_endpoint/MeiliSearch
+	url = git@github.com:meilisearch/MeiliSearch.git
