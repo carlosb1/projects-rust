@@ -12,18 +12,12 @@ mod routes;
 mod db;
 mod usecases;
 
-use std::env;
 use crate::routes::{ static_files, get, users, channels};
 // tera
 use rocket_contrib::templates::Template;
 
 
 fn rocket() -> rocket::Rocket {
-
-
-    println!("-> DB host: {}", db_host);
-
-
     rocket::ignite()
         .attach(Template::fairing())
         .mount(

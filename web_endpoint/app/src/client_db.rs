@@ -18,6 +18,7 @@ fn main() {
     user_repository.clone().create(User{idname: "idname".to_string(), idaddress:"idaddress".to_string()});
     let restored_user = user_repository.clone().get("idname".to_string());
     println!("{restored_user}", restored_user=restored_user.unwrap());
+    user_repository.clone().put(User{idname: "idname".to_string(), idaddress:"idaddress22".to_string()});
 
     
 }

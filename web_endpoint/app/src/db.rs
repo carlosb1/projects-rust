@@ -33,15 +33,16 @@ impl UsersRepository {
         let client = Client::connect(self.host.as_str(), self.port).expect("Failed to initialize standalone client.");
         let coll = client.db("test").collection("users");
         let _update = doc!{
+            "$set" =>
+            {
             "name": user.idname.clone(),
             "address": user.idaddress.clone(),
+            }
         };
         let _filter = doc!{
             "name": user.idname.clone(),
         };
-
-        let options = FindOneAndUpdateOptions::new();
-        let _ = coll.find_one_and_update(_filter, _update, Some(options));
+        let _ = coll.find_one_and_update(_filter, _update, None);
     }
 
 
@@ -103,15 +104,15 @@ impl ChannelsRepository {
         let coll = client.db("test").collection("channels");
         let bson_users: Vec<Bson> = channel.users.into_iter().map(|x| Bson::String(x)).collect(); 
         let _update = doc!{
+            "$set" => {
             "name": channel.name.clone(),
             "users": bson_users,
+            }
         };
         let _filter = doc!{
             "name": channel.name.clone(),
         };
-
-        let options = FindOneAndUpdateOptions::new();
-        let _ = coll.find_one_and_update(_filter, _update, Some(options));
+        let _ = coll.find_one_and_update(_filter, _update, None);
     }
 
     pub fn get (self, id: String) -> Option<Channel> {
