@@ -112,7 +112,7 @@ type ClientTransport = Framed<TcpStream, MyBytesCodec>;
 pub async fn run(address: String) -> Result<(), Box<dyn Error>> {
 
     let remote_address: SocketAddr = "127.0.0.1:8080".parse().unwrap();
-    let tcp = TcpStream::connect(&remote_address).await?;
+    let mut tcp = TcpStream::connect(&remote_address).await?;
     let (r, w) = tcp.split();
     
     let json_parser = ExampleJSONParser::new();
