@@ -1,75 +1,23 @@
-#[macro_use]
 extern crate serde_derive;
 
 extern crate bytes;
 extern crate tokio;
 extern crate serde;
 extern crate serde_json;
+extern crate pub_sub;
 
-use bytes::BytesMut;
-use std::io;
-use tokio_util::codec::{Encoder,Decoder, FramedWrite, FramedRead};
+
+use tokio_util::codec::{FramedWrite, FramedRead};
 use tokio::net::{TcpListener, TcpStream};
 use std::net::SocketAddr;
 use std::error::Error;
 use futures::{SinkExt, StreamExt};
+use pub_sub::{MyBytesCodec, JSONParser};
 
 
 
-#[derive(Clone,Copy)]
-pub struct ExampleJSONParser;
-impl ExampleJSONParser {
-    fn new() -> ExampleJSONParser {
-        ExampleJSONParser{}
-    }
-}
 
-impl ExampleJSONParser {
-    fn parse(&self, info: &Vec<u8>) -> Option<Message> {
-        let vec_to_parse = info.clone();
-        let message = String::from_utf8(vec_to_parse).unwrap();
-        println!("Json parser for: {:?}", message);
-        serde_json::from_str(&message).ok()
-    }
-}
-
-
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Message {
-    operation: String,
-}
-
-pub struct MyBytesCodec;
-
-
-    
-impl Decoder for MyBytesCodec {
-    type Item = Vec<u8>;
-    type Error = io::Error;
-
-    fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Vec<u8>>> {
-        if buf.len() == 0 {
-            return Ok(None);
-        }
-        let data = buf.clone().to_vec();
-        buf.clear();
-        Ok(Some(data))
-    }
-}
-
-impl Encoder for MyBytesCodec {
-    type Item = Vec<u8>;
-    type Error = io::Error;
-
-    fn encode(&mut self, data: Vec<u8>, buf: &mut BytesMut) -> io::Result<()> {
-        buf.extend(data);
-        Ok(())
-    }
-}
-   
 //type ClientTransport = Framed<TcpStream, MyBytesCodec>;
-
 pub async fn run(address: String) -> Result<(), Box<dyn Error>> {
 
     let remote_address: SocketAddr = address.parse().unwrap();
@@ -102,7 +50,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 if let Some(frame) = framed_reader.next().await {
                     match frame {
                         Ok(message) => {
-                            let json_parser = ExampleJSONParser::new();
+                            let json_parser = JSONParser::new();
                             println!("{:?}", message);
                             json_parser.parse(&message);
                             let resp: Vec<u8>  = vec![1,2];
