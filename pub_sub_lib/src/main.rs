@@ -8,29 +8,13 @@ extern crate pub_sub;
 
 
 use tokio_util::codec::{FramedWrite, FramedRead};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpListener;
 use std::net::SocketAddr;
 use std::error::Error;
 use futures::{SinkExt, StreamExt};
 use pub_sub::{MyBytesCodec, JSONParser};
 
 
-
-
-//type ClientTransport = Framed<TcpStream, MyBytesCodec>;
-pub async fn run(address: String) -> Result<(), Box<dyn Error>> {
-
-    let remote_address: SocketAddr = address.parse().unwrap();
-    let mut tcp = TcpStream::connect(&remote_address).await?;
-    let (_, w) = tcp.split();
-    
-    let mut framed_writer = FramedWrite::new(w, MyBytesCodec{});
-    
-    //let mut framed_reader = FramedRead::new(r, MyBytesCodec::new(parsers));
-    let encoded: Vec<u8> = vec![1,1];
-    framed_writer.send(encoded).await?;
-    Ok(()) 
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
