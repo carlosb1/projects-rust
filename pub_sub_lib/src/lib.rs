@@ -40,31 +40,35 @@ impl JSONParser {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     operation: String,
+    info: HashMap<String, String>
 }
 
 impl Message {
     pub fn new(operation: String) -> Message {
-        Message{operation: operation}
+        Message{operation: operation, info: HashMap::new()}
     }
 
-    pub fn ack() -> Message {
-        Message{operation: "ack".to_string()}
+    pub fn ack(addresses: HashMap<String, String>) -> Message {
+        Message{operation: "ack".to_string(), info: addresses}
     }
 
-    pub fn nack() -> Message {
-        Message{operation: "nack".to_string()}
+    pub fn nack(error_info: String) -> Message {
+        let mut info: HashMap<String, String> =  HashMap::new();
+        info.insert("error".to_string(), error_info.to_string());
+        Message{operation: "nack".to_string(), info }
     }
 
     pub fn login(channel: String, users: HashMap<&str,Vec<&str>>) -> Message {
-        Message{operation: "login".to_string()}
+        Message{operation: "login".to_string(), info: HashMap::new()}
     }
     pub fn ack_login(users: HashMap<&str,Vec<&str>>) -> Message {
-        Message {operation: "ack_login".to_string()}
+        Message {operation: "ack_login".to_string(), info: HashMap::new()}
     }
 
     pub fn send_msg(msg: String) -> Message {
-        Message {operation: "send".to_string()} 
+        Message {operation: "send".to_string(), info: HashMap::new()} 
     }
+
 }
 
 pub struct MyBytesCodec;
@@ -125,3 +129,19 @@ pub async fn send(address: String, message: Message) -> Result<(), Box<dyn Error
     }
     Ok(()) 
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn it_works() {
+        let mut addresses: HashMap<String, String> = HashMap::new();
+        addresses.insert("user1".to_string(),"127.0.0.1".to_string());
+        let messg = Message::ack(addresses);
+                let str_messg: String  = serde_json::to_string(&messg).unwrap();
+
+                println!("{}", str_messg.as_str());
+    }
+
+}
+
