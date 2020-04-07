@@ -48,8 +48,8 @@ impl Message {
         Message{operation: operation, info: HashMap::new()}
     }
 
-    pub fn ack(addresses: HashMap<String, String>) -> Message {
-        Message{operation: "ack".to_string(), info: addresses}
+    pub fn ack() -> Message {
+        Message{operation: "ack".to_string(), info: HashMap::new()}
     }
 
     pub fn nack(error_info: String) -> Message {
@@ -58,15 +58,18 @@ impl Message {
         Message{operation: "nack".to_string(), info }
     }
 
-    pub fn login(channel: String, users: HashMap<&str,Vec<&str>>) -> Message {
-        Message{operation: "login".to_string(), info: HashMap::new()}
+    pub fn login(channel: String, addresses: HashMap<String, String>) -> Message {
+        Message{operation: "login".to_string(), info: addresses}
     }
-    pub fn ack_login(users: HashMap<&str,Vec<&str>>) -> Message {
-        Message {operation: "ack_login".to_string(), info: HashMap::new()}
+    pub fn ack_login(addresses: HashMap<String, String>) -> Message {
+        Message {operation: "ack_login".to_string(), info: addresses}
     }
 
-    pub fn send_msg(msg: String) -> Message {
-        Message {operation: "send".to_string(), info: HashMap::new()} 
+    pub fn send_msg(msg: String, channel: String, target_user: String) -> Message { 
+        let mut info: HashMap<String, String> =  HashMap::new();
+        info.insert("channel".to_string(), channel);
+        info.insert("target_user".to_string(), target_user); 
+        Message {operation: "send".to_string(), info: info} 
     }
 
 }
