@@ -36,6 +36,10 @@ impl JSONParser {
     }
 }
 
+pub trait JSONMessage {
+    fn to_json(&self) -> Result<String, serde_json::Error> ;
+}
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
@@ -43,7 +47,46 @@ pub struct Message {
     info: HashMap<String, String>
 }
 
-impl Message {
+impl JSONMessage for Message {
+    fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(&self)
+    }
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChannelMessage {
+    operation: String, 
+    channel: String,
+    info: HashMap<String, String>
+}
+
+impl JSONMessage for ChannelMessage {
+    fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(&self)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SendMessage {
+    operation: String, 
+    channel: String,
+    mesg: String
+}
+
+
+impl JSONMessage for SendMessage {
+    fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(&self)
+    }
+}
+
+
+
+
+pub struct FactoryMessage;
+
+impl FactoryMessage {
     pub fn new(operation: String) -> Message {
         Message{operation: operation, info: HashMap::new()}
     }
@@ -58,18 +101,15 @@ impl Message {
         Message{operation: "nack".to_string(), info }
     }
 
-    pub fn login(channel: String, addresses: HashMap<String, String>) -> Message {
-        Message{operation: "login".to_string(), info: addresses}
+    pub fn login(channel: String, addresses: HashMap<String, String>) -> ChannelMessage {
+        ChannelMessage{operation: "login".to_string(), channel: channel,  info: addresses}
     }
     pub fn ack_login(addresses: HashMap<String, String>) -> Message {
         Message {operation: "ack_login".to_string(), info: addresses}
     }
 
-    pub fn send_msg(msg: String, channel: String, target_user: String) -> Message { 
-        let mut info: HashMap<String, String> =  HashMap::new();
-        info.insert("channel".to_string(), channel);
-        info.insert("target_user".to_string(), target_user); 
-        Message {operation: "send".to_string(), info: info} 
+    pub fn send_msg(msg: String, channel: String) -> SendMessage { 
+        SendMessage {operation: "send".to_string(), channel: channel, mesg: msg} 
     }
 
 }
@@ -103,7 +143,7 @@ impl Encoder for MyBytesCodec {
     }
 }
 
-pub async fn send(address: String, message: Message) -> Result<(), Box<dyn Error>> {
+pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
     println!("Trying to connect to {}", address);
     let remote_address: SocketAddr = address.parse().unwrap();
     let mut tcp = TcpStream::connect(&remote_address).await?;
@@ -112,7 +152,7 @@ pub async fn send(address: String, message: Message) -> Result<(), Box<dyn Error
     let mut framed_writer = FramedWrite::new(w, MyBytesCodec{});
     let mut framed_reader = FramedRead::new(r, MyBytesCodec{});
     
-    let encoded: Vec<u8> = serde_json::to_vec(&message).unwrap();
+    let encoded: Vec<u8> = mesg.as_bytes().to_vec();
     framed_writer.send(encoded).await?;
 
     if let Some(frame) = framed_reader.next().await {

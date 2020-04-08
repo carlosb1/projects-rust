@@ -1,7 +1,7 @@
 
 
 //type ClientTransport = Framed<TcpStream, MyBytesCodec>;
-use pub_sub::{Message, send};
+use pub_sub::{FactoryMessage,JSONMessage, Message,  send};
 use futures::executor::block_on;
 use std::env;
 
@@ -12,7 +12,8 @@ pub fn main () {
     if args.len() >= 2 {
         address = args[0].clone();   
     }
-    let future = send(address, Message::new("first_oper".to_string()));
+    let message  = FactoryMessage::ack();
+    let future = send(address, message.to_json().unwrap());
     block_on(future);
 }
 
