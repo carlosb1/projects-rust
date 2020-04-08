@@ -137,13 +137,13 @@ pub async fn send(address: String, message: Message) -> Result<(), Box<dyn Error
 mod tests {
     use super::*;
     #[test]
-    fn it_works() {
+    fn it_should_parse_an_ack_correctly() {
         let mut addresses: HashMap<String, String> = HashMap::new();
         addresses.insert("user1".to_string(),"127.0.0.1".to_string());
-        let messg = Message::ack(addresses);
-                let str_messg: String  = serde_json::to_string(&messg).unwrap();
-
-                println!("{}", str_messg.as_str());
+        let messg = Message::ack();
+        let str_messg: String  = serde_json::to_string(&messg).unwrap();
+        println!("{}", str_messg.as_str());
+        assert_eq!("{\"operation\":\"ack\",\"info\":{}}", str_messg.as_str())
     }
 
 }
