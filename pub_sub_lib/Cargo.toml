@@ -18,7 +18,7 @@ name = "client"
 path = "src/client.rs"
 
 [dependencies]
-tokio = { version = "0.2.11", features = ["net"] }
+tokio = { version = "0.2.17", features = ["net"] }
 tokio-util = { version = "0.2", features = ["codec"] }
 futures = "0.3"
 bytes = "0.5.4"
