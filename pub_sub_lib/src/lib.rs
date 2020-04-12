@@ -19,7 +19,6 @@ use futures::{SinkExt, StreamExt};
 use std::collections::HashMap;
 
 
-
 #[derive(Clone,Copy)]
 pub struct JSONParser;
 impl JSONParser {
@@ -147,10 +146,10 @@ pub struct Server;
 
 impl Server {
     pub async fn run(self, address: String) -> Result<(), Box<dyn Error>> { 
-        println!("Trying to connect to {}", address);
+        println!("Trying to connect to {}", address)    ;
         let addr = address.as_str().parse::<SocketAddr>()?;
         let mut listener = TcpListener::bind(&addr).await?; 
-            loop  {
+        loop  {
                 println!("Wait for a new socket...");
                 let (mut socket, _) = listener.accept().await?;
                 tokio::spawn(async move {
@@ -164,8 +163,9 @@ impl Server {
                                 let json_parser = JSONParser::new();
                                 println!("{:?}", message);
                                 json_parser.parse(&message);
-                                //let resp: Vec<u8>  = vec![1,2];
-                                //framed_writer.send(resp).await.map_err(|e| println!("not response! {}", e)).ok();
+                                let response_message = FactoryMessage::ack();
+                                framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
+                                                   .await.map_err(|e| println!("not response! {}", e)).ok();
                           }
                             Err(e) => {
                                 println!("Error received while we are reading {}", e);
@@ -190,16 +190,12 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
     let encoded: Vec<u8> = mesg.as_bytes().to_vec();
     framed_writer.send(encoded).await?;
     println!("It is a correct response");
-    /*
+
     if let Some(frame) = framed_reader.next().await {
         match frame {
             Ok(response) => {
                 println!("I got a response");
-                //let json_parser = JSONParser::new();
-                //println!("{:?}", response);
-                //json_parser.parse(&response);
-                //let resp: Vec<u8>  = vec![1,2];
-                //framed_writer.send(resp).await.map_err(|e| println!("not response! {}", e)).ok();
+                println!("{:?}", response);
             }
             Err(e) => {
                 println!("Error received while we are reading {}", e);
@@ -207,7 +203,6 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
 
         }
     }
-    */
     Ok(()) 
 }
 
@@ -218,7 +213,7 @@ mod tests {
     fn it_should_parse_an_ack_correctly() {
         let mut addresses: HashMap<String, String> = HashMap::new();
         addresses.insert("user1".to_string(),"127.0.0.1".to_string());
-        let messg = Message::ack();
+        let messg = FactoryMessage::ack();
         let str_messg: String  = serde_json::to_string(&messg).unwrap();
         println!("{}", str_messg.as_str());
         assert_eq!("{\"operation\":\"ack\",\"info\":{}}", str_messg.as_str())
