@@ -37,7 +37,8 @@ impl JSONParser {
 }
 
 pub trait JSONMessage {
-    fn to_json(&self) -> Result<String, serde_json::Error> ;
+    fn to_json(&self) -> Result<String, serde_json::Error>;
+    fn get_operation(self) -> String;
 }
 
 
@@ -50,6 +51,9 @@ pub struct Message {
 impl JSONMessage for Message {
     fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(&self)
+    }
+    fn get_operation(self) -> String {
+        self.operation
     }
 }
 
@@ -65,6 +69,9 @@ impl JSONMessage for ChannelMessage {
     fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(&self)
     }
+    fn get_operation(self) -> String {
+        self.operation
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -78,6 +85,9 @@ pub struct SendMessage {
 impl JSONMessage for SendMessage {
     fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(&self)
+    }
+    fn get_operation(self) -> String {
+        self.operation
     }
 }
 
@@ -206,6 +216,23 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
     Ok(()) 
 }
 
+pub struct MessageManager{
+}
+
+impl MessageManager  {
+    fn new() -> MessageManager {
+        MessageManager{}
+    }
+    fn exec<T: JSONMessage + Sized>(self, messg: T) {
+        if messg.get_operation() == "login" {
+            
+        }
+
+    
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,6 +245,18 @@ mod tests {
         println!("{}", str_messg.as_str());
         assert_eq!("{\"operation\":\"ack\",\"info\":{}}", str_messg.as_str())
     }
+
+    #[test]
+    fn json_manager_should_parse_correctly_login_message() {
+        let _message_manager = MessageManager::new();
+        let vec_messg = FactoryMessage::ack().to_json().unwrap().as_bytes().to_vec();
+
+        let message = String::from_utf8(vec_to_parse).unwrap();
+        println!("Json parser for: {:?}", message);
+        let messg  = serde_json::from_str(&message).ok();
+        _message_manager.exec(messg);
+    }
+
 
 }
 
