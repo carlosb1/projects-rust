@@ -79,7 +79,7 @@ impl Message {
         Message{operation: "login".to_string(), channel: channel,  info: addresses, ..Default::default()}
     }
     pub fn ack_login(addresses: HashMap<String, String>) -> Message {
-        Message {operation: "ack_login".to_string(), info: addresses, ..Default::default()}
+        Message {operation: "ack-login".to_string(), info: addresses, ..Default::default()}
     }
 
     pub fn send_msg(msg: String, channel: String) -> Message { 
@@ -180,8 +180,7 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
     Ok(()) 
 }
 
-pub struct MessageManager{
-}
+pub struct MessageManager;
 
 impl MessageManager  {
     fn new() -> MessageManager {
@@ -189,29 +188,39 @@ impl MessageManager  {
     }
     fn exec(self, str_messg: String) {
         let messg: Message  = serde_json::from_str(&str_messg).unwrap();
+        let oper = messg.operation.as_str();
+        match oper {
+            "ack" => println!("Hello ack message"),
+            "login" => println!("Hello login message"),
+            "nack" => println!("Hello nack message"),
+            "ack-login" => println!("Hello ack login message"),
+            "send" => println!("Hello send message"),
+            _ => println!("incorrect operation"),
+        }
+
     }
 }
 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+        use super::*;
     #[test]
     fn it_should_parse_an_ack_correctly() {
         let mut addresses: HashMap<String, String> = HashMap::new();
         addresses.insert("user1".to_string(),"127.0.0.1".to_string());
-        let messg = FactoryMessage::ack();
+        let messg = Message::ack();
         let str_messg: String  = serde_json::to_string(&messg).unwrap();
         println!("{}", str_messg.as_str());
-        assert_eq!("{\"operation\":\"ack\",\"info\":{}}", str_messg.as_str())
+        assert_eq!("{\"operation\":\"ack\",\"channel\":\"\",\"info\":{},\"mesg\":\"\"}", str_messg.as_str())
     }
 
     #[test]
     fn json_manager_should_parse_correctly_login_message() {
         let _message_manager = MessageManager::new();
-        let vec_messg = FactoryMessage::ack().to_json().unwrap().as_bytes().to_vec();
+        let vec_messg = Message::ack().to_json().unwrap().as_bytes().to_vec();
 
-        let message = String::from_utf8(vec_to_parse).unwrap();
+        let message = String::from_utf8(vec_messg).unwrap();
         println!("Json parser for: {:?}", message);
         _message_manager.exec(message);
     }
