@@ -1,4 +1,4 @@
-use pub_sub::{FactoryMessage,JSONMessage,  send};
+use pub_sub::{JSONMessage, Message, send};
 use tokio::runtime::Runtime;
 use std::env;
 
@@ -11,7 +11,7 @@ pub fn main () -> Result<(), Box<dyn std::error::Error>>{
     }
 
     let mut rt = Runtime::new()?;
-    let message  = FactoryMessage::ack();
+    let message  = Message::ack();
     let _ = rt.block_on(send(address, message.to_json().unwrap()));
     Ok(())
 }

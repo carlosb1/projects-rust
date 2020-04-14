@@ -42,10 +42,12 @@ pub trait JSONMessage {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Message {
     operation: String,
-    info: HashMap<String, String>
+    channel: String,
+    info: HashMap<String, String>,
+    mesg: String
 }
 
 impl JSONMessage for Message {
@@ -58,68 +60,30 @@ impl JSONMessage for Message {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChannelMessage {
-    operation: String, 
-    channel: String,
-    info: HashMap<String, String>
-}
-
-impl JSONMessage for ChannelMessage {
-    fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(&self)
-    }
-    fn get_operation(self) -> String {
-        self.operation
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SendMessage {
-    operation: String, 
-    channel: String,
-    mesg: String
-}
-
-
-impl JSONMessage for SendMessage {
-    fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(&self)
-    }
-    fn get_operation(self) -> String {
-        self.operation
-    }
-}
-
-
-
-
-pub struct FactoryMessage;
-
-impl FactoryMessage {
+impl Message {
     pub fn new(operation: String) -> Message {
-        Message{operation: operation, info: HashMap::new()}
+        Message{operation: operation, ..Default::default()}
     }
 
     pub fn ack() -> Message {
-        Message{operation: "ack".to_string(), info: HashMap::new()}
+        Message{operation: "ack".to_string(), ..Default::default()}
     }
 
     pub fn nack(error_info: String) -> Message {
         let mut info: HashMap<String, String> =  HashMap::new();
         info.insert("error".to_string(), error_info.to_string());
-        Message{operation: "nack".to_string(), info }
+        Message{operation: "nack".to_string(), info, ..Default::default()}
     }
 
-    pub fn login(channel: String, addresses: HashMap<String, String>) -> ChannelMessage {
-        ChannelMessage{operation: "login".to_string(), channel: channel,  info: addresses}
+    pub fn login(channel: String, addresses: HashMap<String, String>) -> Message {
+        Message{operation: "login".to_string(), channel: channel,  info: addresses, ..Default::default()}
     }
     pub fn ack_login(addresses: HashMap<String, String>) -> Message {
-        Message {operation: "ack_login".to_string(), info: addresses}
+        Message {operation: "ack_login".to_string(), info: addresses, ..Default::default()}
     }
 
-    pub fn send_msg(msg: String, channel: String) -> SendMessage { 
-        SendMessage {operation: "send".to_string(), channel: channel, mesg: msg} 
+    pub fn send_msg(msg: String, channel: String) -> Message { 
+        Message {operation: "send".to_string(), channel: channel, mesg: msg, ..Default::default()} 
     }
 
 }
@@ -173,7 +137,7 @@ impl Server {
                                 let json_parser = JSONParser::new();
                                 println!("{:?}", message);
                                 json_parser.parse(&message);
-                                let response_message = FactoryMessage::ack();
+                                let response_message = Message::ack();
                                 framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
                                                    .await.map_err(|e| println!("not response! {}", e)).ok();
                           }
@@ -223,12 +187,8 @@ impl MessageManager  {
     fn new() -> MessageManager {
         MessageManager{}
     }
-    fn exec<T: JSONMessage + Sized>(self, messg: T) {
-        if messg.get_operation() == "login" {
-            
-        }
-
-    
+    fn exec(self, str_messg: String) {
+        let messg: Message  = serde_json::from_str(&str_messg).unwrap();
     }
 }
 
@@ -253,8 +213,7 @@ mod tests {
 
         let message = String::from_utf8(vec_to_parse).unwrap();
         println!("Json parser for: {:?}", message);
-        let messg  = serde_json::from_str(&message).ok();
-        _message_manager.exec(messg);
+        _message_manager.exec(message);
     }
 
 
