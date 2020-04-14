@@ -18,7 +18,7 @@ use std::error::Error;
 use futures::{SinkExt, StreamExt};
 use std::collections::HashMap;
 
-
+/*
 #[derive(Clone,Copy)]
 pub struct JSONParser;
 impl JSONParser {
@@ -35,6 +35,7 @@ impl JSONParser {
         serde_json::from_str(&message).ok()
     }
 }
+*/
 
 pub trait JSONMessage {
     fn to_json(&self) -> Result<String, serde_json::Error>;
@@ -122,6 +123,10 @@ impl Server {
     pub async fn run(self, address: String) -> Result<(), Box<dyn Error>> { 
         println!("Trying to connect to {}", address)    ;
         let addr = address.as_str().parse::<SocketAddr>()?;
+        
+        // let _manager: Arc<MessageManager> = Arc::new(MessageManager::new());
+        let _manager: MessageManager = MessageManager::new();
+
         let mut listener = TcpListener::bind(&addr).await?; 
         loop  {
                 println!("Wait for a new socket...");
@@ -134,9 +139,11 @@ impl Server {
                    if let Some(frame) = framed_reader.next().await {
                         match frame {
                             Ok(message) => {
-                                let json_parser = JSONParser::new();
-                                println!("{:?}", message);
-                                json_parser.parse(&message);
+                                //let json_parser = JSONParser::new();
+                                //println!("{:?}", message);
+                                //json_parser.parse(&message);
+                                let str_message = String::from_utf8(message).unwrap();
+                                _manager.exec(str_message);
                                 let response_message = Message::ack();
                                 framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
                                                    .await.map_err(|e| println!("not response! {}", e)).ok();
@@ -180,6 +187,7 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
     Ok(()) 
 }
 
+#[derive(Clone,Copy)]
 pub struct MessageManager;
 
 impl MessageManager  {
