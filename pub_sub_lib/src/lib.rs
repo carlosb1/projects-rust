@@ -17,25 +17,8 @@ use std::net::SocketAddr;
 use std::error::Error;
 use futures::{SinkExt, StreamExt};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
-/*
-#[derive(Clone,Copy)]
-pub struct JSONParser;
-impl JSONParser {
-    pub fn new() -> JSONParser {
-        JSONParser{}
-    }
-}
-
-impl JSONParser {
-    pub fn parse(&self, info: &Vec<u8>) -> Option<Message> {
-        let vec_to_parse = info.clone();
-        let message = String::from_utf8(vec_to_parse).unwrap();
-        println!("Json parser for: {:?}", message);
-        serde_json::from_str(&message).ok()
-    }
-}
-*/
 
 pub trait JSONMessage {
     fn to_json(&self) -> Result<String, serde_json::Error>;
@@ -119,20 +102,57 @@ impl Encoder for MyBytesCodec {
 }
 pub struct Server;
 
+#[derive(Copy, Clone)]
+struct Foo {
+   num: i32 
+}
+impl Foo {
+    pub fn hello(self) {
+        println!("hello world");
+    }
+}
+
+
+
 impl Server {
     pub async fn run(self, address: String) -> Result<(), Box<dyn Error>> { 
         println!("Trying to connect to {}", address)    ;
         let addr = address.as_str().parse::<SocketAddr>()?;
+            
+
+        let foo = Foo{num:0};
+
+        let mutex = std::sync::Mutex::new(foo);
+        let arc = std::sync::Arc::new(mutex);
+    
+        let replier = Arc::new(Mutex::new(MockReplier::new()));
         
-        // let _manager: Arc<MessageManager> = Arc::new(MessageManager::new());
-        let _manager: MessageManager = MessageManager::new();
+        let gener_replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new(MockReplier2::new())));
 
         let mut listener = TcpListener::bind(&addr).await?; 
         loop  {
+
+
+
+                let arc = arc.clone();
+                let replier = replier.clone();
+                let gener_replier = gener_replier.clone();
+
+
+
                 println!("Wait for a new socket...");
                 let (mut socket, _) = listener.accept().await?;
-                tokio::spawn(async move {
-                    let (r, w)  = socket.split();
+                tokio::spawn(async move {                 
+                    let y = {
+                        let x = arc.lock().unwrap();
+                        (*x).hello();
+                    };
+
+ 
+                    //_ref_replier.lock().unwrap().on_ack(&Message::ack()); 
+                    //(*_ref_replier).lock().unwrap().on_ack(&Message::ack()); 
+                    // replier.on_login(&Message::ack());
+                        let (r, w)  = socket.split();
                     let mut framed_writer = FramedWrite::new(w, MyBytesCodec{});
                     let mut framed_reader = FramedRead::new(r, MyBytesCodec{});
     
@@ -142,8 +162,26 @@ impl Server {
                                 //let json_parser = JSONParser::new();
                                 //println!("{:?}", message);
                                 //json_parser.parse(&message);
-                                let str_message = String::from_utf8(message).unwrap();
-                                _manager.exec(str_message);
+                                
+                                 let z = {
+                                    let unwrap_replier = replier.lock().unwrap();
+                                     //(*unwrap_replier).on_ack(&Message::ack());
+                                    //let _manager = MessageManager::new(*unwrap_replier);
+                                    //let str_message = String::from_utf8(message).unwrap();
+                                    //_manager.exec(str_message);
+                                 };
+                                let y2 = {
+                                    let x2 = gener_replier.lock().unwrap(); 
+                                    //(*x2).box_clone().on_ack(&Message::ack());
+                                    
+                                    let _manager = MessageManager2::new((*x2).box_clone());
+                                    let str_message = String::from_utf8(message).unwrap();
+                                    _manager.exec(str_message);
+                                
+                                };
+
+//                                let str_message = String::from_utf8(message).unwrap();
+                                //_manager.exec(str_message);
                                 let response_message = Message::ack();
                                 framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
                                                    .await.map_err(|e| println!("not response! {}", e)).ok();
@@ -187,27 +225,118 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
     Ok(()) 
 }
 
-#[derive(Clone,Copy)]
-pub struct MessageManager;
+
+pub trait MessageReplier: Send + Sync {
+    fn on_ack(self: Box<Self>, messg: &Message);
+    fn hello(self: Box<Self>);
+    fn box_clone(&self) -> Box<MessageReplier>;
+//    fn on_login(self, messg: &Message);
+//    fn on_nack(self, messg: &Message);
+//    fn on_ack_login(self, messg: &Message);
+//    fn on_send(self, messg: &Message);
+}
+
+pub struct MessageManager {
+    replier: MockReplier
+}
 
 impl MessageManager  {
-    fn new() -> MessageManager {
-        MessageManager{}
+    fn new(replier: MockReplier) -> MessageManager {
+        MessageManager{replier: replier}
     }
     fn exec(self, str_messg: String) {
         let messg: Message  = serde_json::from_str(&str_messg).unwrap();
         let oper = messg.operation.as_str();
         match oper {
-            "ack" => println!("Hello ack message"),
-            "login" => println!("Hello login message"),
-            "nack" => println!("Hello nack message"),
-            "ack-login" => println!("Hello ack login message"),
-            "send" => println!("Hello send message"),
+            //"ack" => self.replier.on_ack(&messg),
+            "login" => self.response_ack(&messg),
+            "nack" => self.response_ack(&messg),
+            "ack-login" => self.response_ack(&messg),
+            "send" => self.response_ack(&messg),
             _ => println!("incorrect operation"),
         }
 
     }
+
+    fn response_ack(self, messg: &Message) {
+            println!("Hello ack message");
+    }
+        
 }
+
+pub struct MessageManager2 {
+    replier: Box<dyn MessageReplier>
+}
+
+impl MessageManager2  {
+    fn new(replier: Box<dyn MessageReplier>) -> MessageManager2 {
+        MessageManager2{replier: replier}
+    }
+    fn exec(self, str_messg: String) {
+        let messg: Message  = serde_json::from_str(&str_messg).unwrap();
+        let oper = messg.operation.as_str();
+        match oper {
+            "ack" => self.replier.on_ack(&messg),
+            _ => println!("incorrect operation"),
+        }
+
+    }
+
+    fn response_ack(self, messg: &Message) {
+            println!("Hello ack message");
+    }
+        
+}
+
+#[derive(Copy, Clone)]
+pub struct MockReplier;
+
+impl MockReplier {
+    fn new() -> MockReplier {
+        MockReplier{}
+    }
+}
+
+impl MockReplier {
+    pub fn on_ack(self, messg: &Message) {
+        println!("Ack received");
+    }
+    pub fn on_login(self, messg: &Message) {
+        println!("Login received");
+    }
+    pub fn on_nack(self, messg: &Message) {
+        println!("NAck received");
+    }
+    fn on_ack_login(self, messg: &Message) {
+        println!("Ack login received");
+    }
+    fn on_send(self, messg: &Message){
+        println!("Send received");
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct MockReplier2;
+
+impl MockReplier2 {
+    fn new() -> MockReplier2 {
+        MockReplier2{}
+    }
+}
+
+impl MessageReplier for MockReplier2 {
+    fn on_ack(self: Box<Self>, messg: &Message) {
+        println!("Ack received");
+    }
+    fn hello(self: Box<Self>)  {
+        println!("hello world");
+    }
+    fn box_clone(&self)-> Box<dyn MessageReplier> {
+        Box::new((*self).clone()) 
+    }
+}
+
+
 
 
 #[cfg(test)]
