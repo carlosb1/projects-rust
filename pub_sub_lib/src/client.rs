@@ -12,8 +12,16 @@ pub fn main () -> Result<(), Box<dyn std::error::Error>>{
     }
 
     let mut rt = Runtime::new()?;
+    
+    println!("Testing ack");
     let message  = Message::ack(user.clone(), address.clone());
     let _ = rt.block_on(send(address.clone(), message.to_json().unwrap()));
+
+    println!("Testing login");
+    let message  = Message::subscribe("topic1".to_string(),"me".to_string(), "192.168.0.1".to_string());
+    let _ = rt.block_on(send(address.clone(), message.to_json().unwrap()));
+
+
     Ok(())
 }
 
