@@ -219,16 +219,33 @@ impl MessageManager  {
     }
 }
 
+pub trait UserInterface: Send + Sync{
+    fn show(self, topic: String, msg: String);
+}
+
+
+
+#[derive(Clone)]
+pub struct CLI;
+
+impl UserInterface for CLI  {
+    fn show(self, topic: String, msg: String) {
+        println!("{} {}", topic, msg);
+    }
+}
+
+
 #[derive(Clone)]
 pub struct MockReplier{
     subscriptions: HashMap<String, HashMap<String, String>>,
     user: String,
-    address: String
+    address: String,
+    interface: Box<CLI>
 }
 
 impl MockReplier {
     fn new(user: String, address: String) -> MockReplier {
-        MockReplier{subscriptions: HashMap::new(), user: user, address: address}
+        MockReplier{subscriptions: HashMap::new(), user: user, address: address, interface: Box::new(CLI{})}
     }
     
 }
@@ -262,10 +279,10 @@ impl MessageReplier for MockReplier {
     }
     fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>{
         println!("notification received");
+        let result_message = Message::ack(self.user, self.address);
         let mesg = messg.mesg.clone();
         let topic = messg.topic.clone();
-        println!("{} {}", mesg, topic);
-        let result_message = Message::ack(self.user, self.address);
+        self.interface.show(topic, mesg);
         Box::new(result_message)
     }
     fn new_ack(self: Box<Self>) -> Box<Message> {
