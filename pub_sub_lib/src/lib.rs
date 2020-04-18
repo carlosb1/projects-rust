@@ -29,7 +29,7 @@ pub trait JSONMessage {
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Message {
     operation: String,
-    channel: String,
+    topic: String,
     info: HashMap<String, String>,
     mesg: String
 }
@@ -49,7 +49,9 @@ impl Message {
         Message{operation: operation, ..Default::default()}
     }
 
-    pub fn ack() -> Message {
+    pub fn ack(user: String,  address_source: String) -> Message {
+        let mut info: HashMap<String, String> =  HashMap::new();
+        info.insert(user,address_source);
         Message{operation: "ack".to_string(), ..Default::default()}
     }
 
@@ -59,15 +61,16 @@ impl Message {
         Message{operation: "nack".to_string(), info, ..Default::default()}
     }
 
-    pub fn login(channel: String, addresses: HashMap<String, String>) -> Message {
-        Message{operation: "login".to_string(), channel: channel,  info: addresses, ..Default::default()}
+    pub fn subscribe(topic: String, user: String,  address_source: String) -> Message {
+        let mut addresses: HashMap<String, String> =  HashMap::new();
+        Message{operation: "subscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
     }
-    pub fn ack_login(addresses: HashMap<String, String>) -> Message {
-        Message {operation: "ack-login".to_string(), info: addresses, ..Default::default()}
+    pub fn ack_subscribe(addresses: HashMap<String, String>) -> Message {
+        Message {operation: "ack-subscribe".to_string(), info: addresses, ..Default::default()}
     }
 
-    pub fn send_msg(msg: String, channel: String) -> Message { 
-        Message {operation: "send".to_string(), channel: channel, mesg: msg, ..Default::default()} 
+    pub fn notify(msg: String, topic: String) -> Message { 
+        Message {operation: "send".to_string(), topic: topic, mesg: msg, ..Default::default()} 
     }
 
 }
@@ -102,88 +105,41 @@ impl Encoder for MyBytesCodec {
 }
 pub struct Server;
 
-#[derive(Copy, Clone)]
-struct Foo {
-   num: i32 
-}
-impl Foo {
-    pub fn hello(self) {
-        println!("hello world");
-    }
-}
+
 
 
 
 impl Server {
-    pub async fn run(self, address: String) -> Result<(), Box<dyn Error>> { 
+    pub async fn run(self, address: String, user: String) -> Result<(), Box<dyn Error>> { 
         println!("Trying to connect to {}", address)    ;
+
         let addr = address.as_str().parse::<SocketAddr>()?;
-            
-
-        let foo = Foo{num:0};
-
-        let mutex = std::sync::Mutex::new(foo);
-        let arc = std::sync::Arc::new(mutex);
-    
-        let replier = Arc::new(Mutex::new(MockReplier::new()));
-        
-        let gener_replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new(MockReplier2::new())));
-
+        let replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new(MockReplier::new(user.clone(), address.clone()))));
         let mut listener = TcpListener::bind(&addr).await?; 
         loop  {
 
-
-
-                let arc = arc.clone();
                 let replier = replier.clone();
-                let gener_replier = gener_replier.clone();
-
-
+                let user = user.clone();
+                let address = address.clone();
 
                 println!("Wait for a new socket...");
                 let (mut socket, _) = listener.accept().await?;
                 tokio::spawn(async move {                 
-                    let y = {
-                        let x = arc.lock().unwrap();
-                        (*x).hello();
-                    };
-
- 
-                    //_ref_replier.lock().unwrap().on_ack(&Message::ack()); 
-                    //(*_ref_replier).lock().unwrap().on_ack(&Message::ack()); 
-                    // replier.on_login(&Message::ack());
-                        let (r, w)  = socket.split();
+                    let (r, w)  = socket.split();
                     let mut framed_writer = FramedWrite::new(w, MyBytesCodec{});
                     let mut framed_reader = FramedRead::new(r, MyBytesCodec{});
     
                    if let Some(frame) = framed_reader.next().await {
                         match frame {
-                            Ok(message) => {
-                                //let json_parser = JSONParser::new();
-                                //println!("{:?}", message);
-                                //json_parser.parse(&message);
-                                
-                                 let z = {
-                                    let unwrap_replier = replier.lock().unwrap();
-                                     //(*unwrap_replier).on_ack(&Message::ack());
-                                    //let _manager = MessageManager::new(*unwrap_replier);
-                                    //let str_message = String::from_utf8(message).unwrap();
-                                    //_manager.exec(str_message);
-                                 };
-                                let y2 = {
-                                    let x2 = gener_replier.lock().unwrap(); 
-                                    //(*x2).box_clone().on_ack(&Message::ack());
-                                    
-                                    let _manager = MessageManager2::new((*x2).box_clone());
+                             Ok(message) => {
+                                let mut response_message = Box::new(Message::ack(user, address));
+                                let _ = {
+                                    let _repl = replier.lock().unwrap(); 
+                                    let _manager = MessageManager::new((*_repl).box_clone());
                                     let str_message = String::from_utf8(message).unwrap();
-                                    _manager.exec(str_message);
-                                
+                                    response_message  = _manager.exec(str_message);
                                 };
-
-//                                let str_message = String::from_utf8(message).unwrap();
-                                //_manager.exec(str_message);
-                                let response_message = Message::ack();
-                                framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
+                                    framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
                                                    .await.map_err(|e| println!("not response! {}", e)).ok();
                           }
                             Err(e) => {
@@ -227,109 +183,81 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
 
 
 pub trait MessageReplier: Send + Sync {
-    fn on_ack(self: Box<Self>, messg: &Message);
-    fn hello(self: Box<Self>);
-    fn box_clone(&self) -> Box<MessageReplier>;
-//    fn on_login(self, messg: &Message);
-//    fn on_nack(self, messg: &Message);
-//    fn on_ack_login(self, messg: &Message);
-//    fn on_send(self, messg: &Message);
+    fn on_ack(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn on_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn on_nack(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn new_ack(self: Box<Self>) -> Box<Message>;
+    fn box_clone(&self) -> Box<dyn MessageReplier>;
 }
 
 pub struct MessageManager {
-    replier: MockReplier
+    replier: Box<dyn MessageReplier>,
 }
 
 impl MessageManager  {
-    fn new(replier: MockReplier) -> MessageManager {
+    fn new(replier: Box<dyn MessageReplier>) -> MessageManager {
         MessageManager{replier: replier}
     }
-    fn exec(self, str_messg: String) {
-        let messg: Message  = serde_json::from_str(&str_messg).unwrap();
-        let oper = messg.operation.as_str();
-        match oper {
-            //"ack" => self.replier.on_ack(&messg),
-            "login" => self.response_ack(&messg),
-            "nack" => self.response_ack(&messg),
-            "ack-login" => self.response_ack(&messg),
-            "send" => self.response_ack(&messg),
-            _ => println!("incorrect operation"),
-        }
-
-    }
-
-    fn response_ack(self, messg: &Message) {
-            println!("Hello ack message");
-    }
-        
-}
-
-pub struct MessageManager2 {
-    replier: Box<dyn MessageReplier>
-}
-
-impl MessageManager2  {
-    fn new(replier: Box<dyn MessageReplier>) -> MessageManager2 {
-        MessageManager2{replier: replier}
-    }
-    fn exec(self, str_messg: String) {
+    fn exec(self, str_messg: String) -> Box<Message> {
         let messg: Message  = serde_json::from_str(&str_messg).unwrap();
         let oper = messg.operation.as_str();
         match oper {
             "ack" => self.replier.on_ack(&messg),
-            _ => println!("incorrect operation"),
+            "nack" => self.replier.on_nack(&messg),
+            "ack-subscribe" => self.replier.on_ack_subscribe(&messg),
+            "subscribe" => self.replier.on_subscribe(&messg),
+            "notify" => self.replier.on_notify(&messg),
+            _ => self.replier.new_ack(),
         }
 
     }
-
-    fn response_ack(self, messg: &Message) {
-            println!("Hello ack message");
-    }
-        
 }
 
-#[derive(Copy, Clone)]
-pub struct MockReplier;
-
-impl MockReplier {
-    fn new() -> MockReplier {
-        MockReplier{}
-    }
+#[derive(Clone)]
+pub struct MockReplier{
+    current_users: HashMap<String, String>,
+    user: String,
+    address: String
 }
 
 impl MockReplier {
-    pub fn on_ack(self, messg: &Message) {
+    fn new(user: String, address: String) -> MockReplier {
+        MockReplier{current_users: HashMap::new(), user: user, address: address}
+    }
+}
+
+impl MessageReplier for MockReplier {
+    fn on_ack(mut self: Box<Self>, messg: &Message) -> Box<Message> {
+        for (key, val) in messg.info.iter() {
+            self.current_users.insert(key.clone(), val.clone());            
+        }
         println!("Ack received");
+        Box::new(Message::ack(self.user, self.address))
     }
-    pub fn on_login(self, messg: &Message) {
-        println!("Login received");
+    fn on_subscribe(mut self: Box<Self>, messg: &Message)  -> Box<Message>{
+        println!("On login received");
+        for (key, val) in messg.info.iter() {
+            self.current_users.insert(key.clone(), val.clone());
+        }
+        Box::new(Message::ack(self.user, self.address))
+
     }
-    pub fn on_nack(self, messg: &Message) {
-        println!("NAck received");
+    fn on_nack(self: Box<Self>, messg: &Message)  -> Box<Message>{
+        println!("On Nack received");
+        Box::new(Message::ack(self.user, self.address))
     }
-    fn on_ack_login(self, messg: &Message) {
-        println!("Ack login received");
+    fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>{
+        println!("Ack Login received");
+        Box::new(Message::ack(self.user, self.address))
     }
-    fn on_send(self, messg: &Message){
+    fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>{
         println!("Send received");
+        Box::new(Message::ack(self.user, self.address))
     }
-}
-
-#[derive(Copy, Clone)]
-pub struct MockReplier2;
-
-impl MockReplier2 {
-    fn new() -> MockReplier2 {
-        MockReplier2{}
-    }
-}
-
-impl MessageReplier for MockReplier2 {
-    fn on_ack(self: Box<Self>, messg: &Message) {
-        println!("Ack received");
-    }
-    fn hello(self: Box<Self>)  {
-        println!("hello world");
+    fn new_ack(self: Box<Self>) -> Box<Message> {
+        Box::new(Message::ack(self.user, self.address))
     }
     fn box_clone(&self)-> Box<dyn MessageReplier> {
         Box::new((*self).clone()) 
