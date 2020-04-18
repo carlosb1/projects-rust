@@ -66,6 +66,13 @@ impl Message {
         addresses.insert(user, address_source);
         Message{operation: "subscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
     }
+
+    pub fn unsuscribe(topic: String, user: String, address_source: String) -> Message {
+        let mut addresses: HashMap<String, String> =  HashMap::new();
+        addresses.insert(user, address_source);
+        Message{operation: "unsubscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
+    }
+
     pub fn ack_subscribe(topic: String, addresses: HashMap<String, String>) -> Message {
         Message {operation: "ack-subscribe".to_string(), topic: topic, info: addresses, ..Default::default()}
     }
@@ -189,6 +196,7 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
 pub trait MessageReplier: Send + Sync {
     fn on_ack(self: Box<Self>, messg: &Message);
     fn on_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn on_unsubscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
     fn on_nack(self: Box<Self>, messg: &Message);
     fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
     fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>;
@@ -212,6 +220,7 @@ impl MessageManager  {
             "nack" => {self.replier.on_nack(&messg); None},
             "ack-subscribe" => Some(self.replier.on_ack_subscribe(&messg)),
             "subscribe" => Some(self.replier.on_subscribe(&messg)),
+            "unsubscribe" => Some(self.replier.on_unsubscribe(&messg)),
             "notify" => Some(self.replier.on_notify(&messg)),
             _ => {self.replier.new_ack(); None},
         }
@@ -267,6 +276,15 @@ impl MessageReplier for MockReplier {
         self.subscriptions.insert(messg.topic.clone(), users.clone());
         Box::new(Message::ack_subscribe(messg.topic.clone(), users.clone()))
 
+    }
+    fn on_unsubscribe(mut self: Box<Self>, messg: &Message)  -> Box<Message>{
+        println!("Unsubscribed received");
+        if let Some(user_entry) = self.subscriptions.get_mut(&messg.topic) {
+            for (key, _) in messg.info.iter() {
+                user_entry.remove(&key.clone());
+            } 
+        }
+        Box::new(Message::ack(self.user.clone(), self.address.clone()))
     }
     fn on_nack(self: Box<Self>, messg: &Message){
         println!("On Nack received");
