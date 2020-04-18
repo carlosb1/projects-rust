@@ -1,6 +1,7 @@
 use pub_sub::{JSONMessage, Message, send};
 use tokio::runtime::Runtime;
 use std::env;
+use std::error::Error;
 
 
 pub fn main () -> Result<(), Box<dyn std::error::Error>>{
@@ -19,8 +20,16 @@ pub fn main () -> Result<(), Box<dyn std::error::Error>>{
 
     println!("Testing login");
     let message  = Message::subscribe("topic1".to_string(),"me".to_string(), "192.168.0.1".to_string());
-    let _ = rt.block_on(send(address.clone(), message.to_json().unwrap()));
-
+    let result:  Result<Box<Message>, Box<dyn Error>>  = rt.block_on(send(address.clone(), message.to_json().unwrap()));
+    
+    match result {
+        Ok(message) =>{
+            println!("{}",message.to_json().unwrap().as_str());
+        },
+        Err(e) => {
+            println!("{}?", e)
+        },
+    }
 
     Ok(())
 }

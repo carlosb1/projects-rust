@@ -15,6 +15,7 @@ use tokio_util::codec::{FramedWrite, FramedRead};
 use tokio::net::TcpStream;
 use std::net::SocketAddr;
 use std::error::Error;
+use std::io::{ErrorKind};
 use futures::{SinkExt, StreamExt};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -164,7 +165,7 @@ impl Server {
     }
 }
 
-pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
+pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn Error>> {
     println!("Trying to connect to {}", address);
     let remote_address: SocketAddr = address.parse().unwrap();
     let mut tcp = TcpStream::connect(&remote_address).await?;
@@ -182,14 +183,19 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
             Ok(response) => {
                 println!("I got a response");
                 println!("{:?}", response);
+                let str_messg= String::from_utf8(response).unwrap();
+                let messg: Message  = serde_json::from_str(&str_messg).unwrap();
+                return Ok(Box::new(messg))
             }
             Err(e) => {
                 println!("Error received while we are reading {}", e);
+                return Err(Box::new(e))
             }
 
         }
+    } else  {
+        return Err(Box::new(std::io::Error::new(ErrorKind::Other, "uchs")))
     }
-    Ok(()) 
 }
 
 
