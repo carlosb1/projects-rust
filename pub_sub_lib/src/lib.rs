@@ -119,11 +119,11 @@ pub struct Server;
 
 
 impl Server {
-    pub async fn run(self, address: String, user: String) -> Result<(), Box<dyn Error>> { 
+    pub async fn run(self, address: String, user: String, replier: Arc<Mutex<Box<dyn MessageReplier>>>) -> Result<(), Box<dyn Error>> { 
         println!("Trying to connect to {}", address)    ;
 
         let addr = address.as_str().parse::<SocketAddr>()?;
-        let replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new(MockReplier::new(user.clone(), address.clone()))));
+
         let mut listener = TcpListener::bind(&addr).await?; 
         loop  {
 
@@ -252,14 +252,14 @@ impl UserInterface for CLI  {
 
 #[derive(Clone)]
 pub struct MockReplier{
-    subscriptions: HashMap<String, HashMap<String, String>>,
+    pub subscriptions: HashMap<String, HashMap<String, String>>,
     user: String,
     address: String,
     interface: Box<CLI>
 }
 
 impl MockReplier {
-    fn new(user: String, address: String) -> MockReplier {
+    pub fn new(user: String, address: String) -> MockReplier {
         MockReplier{subscriptions: HashMap::new(), user: user, address: address, interface: Box::new(CLI{})}
     }
     
