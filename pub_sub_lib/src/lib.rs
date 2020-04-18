@@ -63,10 +63,11 @@ impl Message {
 
     pub fn subscribe(topic: String, user: String,  address_source: String) -> Message {
         let mut addresses: HashMap<String, String> =  HashMap::new();
+        addresses.insert(user, address_source);
         Message{operation: "subscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
     }
-    pub fn ack_subscribe(addresses: HashMap<String, String>) -> Message {
-        Message {operation: "ack-subscribe".to_string(), info: addresses, ..Default::default()}
+    pub fn ack_subscribe(topic: String, addresses: HashMap<String, String>) -> Message {
+        Message {operation: "ack-subscribe".to_string(), topic: topic, info: addresses, ..Default::default()}
     }
 
     pub fn notify(msg: String, topic: String) -> Message { 
@@ -137,7 +138,10 @@ impl Server {
                                     let _repl = replier.lock().unwrap(); 
                                     let _manager = MessageManager::new((*_repl).box_clone());
                                     let str_message = String::from_utf8(message).unwrap();
-                                    response_message  = _manager.exec(str_message);
+                                    match  _manager.exec(str_message) {
+                                        Some(response) => { response_message = response}
+                                        None => {println!("It is not necessary to reply the message")}
+                                    };
                                 };
                                     framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
                                                    .await.map_err(|e| println!("not response! {}", e)).ok();
@@ -183,9 +187,9 @@ pub async fn send(address: String, mesg: String) -> Result<(), Box<dyn Error>> {
 
 
 pub trait MessageReplier: Send + Sync {
-    fn on_ack(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn on_ack(self: Box<Self>, messg: &Message);
     fn on_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
-    fn on_nack(self: Box<Self>, messg: &Message) -> Box<Message>;
+    fn on_nack(self: Box<Self>, messg: &Message);
     fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
     fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>;
     fn new_ack(self: Box<Self>) -> Box<Message>;
@@ -200,16 +204,16 @@ impl MessageManager  {
     fn new(replier: Box<dyn MessageReplier>) -> MessageManager {
         MessageManager{replier: replier}
     }
-    fn exec(self, str_messg: String) -> Box<Message> {
+    fn exec(self, str_messg: String) -> Option<Box<Message>> {
         let messg: Message  = serde_json::from_str(&str_messg).unwrap();
         let oper = messg.operation.as_str();
         match oper {
-            "ack" => self.replier.on_ack(&messg),
-            "nack" => self.replier.on_nack(&messg),
-            "ack-subscribe" => self.replier.on_ack_subscribe(&messg),
-            "subscribe" => self.replier.on_subscribe(&messg),
-            "notify" => self.replier.on_notify(&messg),
-            _ => self.replier.new_ack(),
+            "ack" =>  {self.replier.on_ack(&messg); None},
+            "nack" => {self.replier.on_nack(&messg); None},
+            "ack-subscribe" => Some(self.replier.on_ack_subscribe(&messg)),
+            "subscribe" => Some(self.replier.on_subscribe(&messg)),
+            "notify" => Some(self.replier.on_notify(&messg)),
+            _ => {self.replier.new_ack(); None},
         }
 
     }
@@ -217,44 +221,52 @@ impl MessageManager  {
 
 #[derive(Clone)]
 pub struct MockReplier{
-    current_users: HashMap<String, String>,
+    subscriptions: HashMap<String, HashMap<String, String>>,
     user: String,
     address: String
 }
 
 impl MockReplier {
     fn new(user: String, address: String) -> MockReplier {
-        MockReplier{current_users: HashMap::new(), user: user, address: address}
+        MockReplier{subscriptions: HashMap::new(), user: user, address: address}
     }
+    
 }
 
 impl MessageReplier for MockReplier {
-    fn on_ack(mut self: Box<Self>, messg: &Message) -> Box<Message> {
-        for (key, val) in messg.info.iter() {
-            self.current_users.insert(key.clone(), val.clone());            
-        }
+    fn on_ack(self: Box<Self>, _: &Message) {
         println!("Ack received");
-        Box::new(Message::ack(self.user, self.address))
     }
     fn on_subscribe(mut self: Box<Self>, messg: &Message)  -> Box<Message>{
-        println!("On login received");
+        println!("susbcribed received");
+
+        let mut users: HashMap<String, String> = match self.subscriptions.get(&messg.topic) {
+            Some(val) =>{val.clone()}
+            None => { HashMap::new()}
+        };
         for (key, val) in messg.info.iter() {
-            self.current_users.insert(key.clone(), val.clone());
+            users.insert(key.clone(), val.clone());
         }
-        Box::new(Message::ack(self.user, self.address))
+        self.subscriptions.insert(messg.topic.clone(), users.clone());
+        Box::new(Message::ack_subscribe(messg.topic.clone(), users.clone()))
 
     }
-    fn on_nack(self: Box<Self>, messg: &Message)  -> Box<Message>{
+    fn on_nack(self: Box<Self>, messg: &Message){
         println!("On Nack received");
-        Box::new(Message::ack(self.user, self.address))
+        println!("Error message {}?", messg.info.get("error").unwrap_or(&"No available error".to_string()));
     }
-    fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>{
+    fn on_ack_subscribe(mut self: Box<Self>, messg: &Message) -> Box<Message>{
         println!("Ack Login received");
+        self.subscriptions.insert(messg.topic.clone(), messg.info.clone());
         Box::new(Message::ack(self.user, self.address))
     }
     fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>{
-        println!("Send received");
-        Box::new(Message::ack(self.user, self.address))
+        println!("notification received");
+        let mesg = messg.mesg.clone();
+        let topic = messg.topic.clone();
+        println!("{} {}", mesg, topic);
+        let result_message = Message::ack(self.user, self.address);
+        Box::new(result_message)
     }
     fn new_ack(self: Box<Self>) -> Box<Message> {
         Box::new(Message::ack(self.user, self.address))
