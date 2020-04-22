@@ -19,6 +19,58 @@ use std::io::{ErrorKind};
 use futures::{SinkExt, StreamExt};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use rocksdb::DB;
+
+#[derive(Clone)]
+pub struct DBRepository {
+    filepath: String
+}
+
+impl DBRepository {
+    pub fn new(filepath: String) -> DBRepository {
+        DBRepository{filepath: filepath}
+    }
+
+    pub fn save(self, key: String,  info: HashMap<String, String>){
+        let parsed_info = serde_json::to_string(&info).unwrap();
+        let db = DB::open_default(self.filepath).unwrap();
+        db.put(key, parsed_info).unwrap(); 
+    }
+
+    pub fn get(self, key: String) -> Option<HashMap<String, String>> {
+        let db = DB::open_default(self.filepath).unwrap();
+        let ret =  match db.get(key.clone()) {
+            Ok(Some(value)) =>  {
+                let tmp_val = String::from_utf8(value).unwrap();
+                let str_result = tmp_val.as_str();
+                Some(serde_json::from_str(str_result).unwrap())
+                },
+            Ok(None) =>  None,
+            Err(e) =>{ println!("operational problem encountered: {}", e); None},
+        };
+        let _ =  db.delete(key); 
+        ret
+    }
+    pub fn contains(self, key: String) -> bool {
+        let db = DB::open_default(self.filepath).unwrap();
+        let ret = match db.get(key.clone()) {
+            Ok(Some(_)) => true,
+            Ok(None) => false,
+            Err(_) => false,
+        };
+        ret  
+    }
+
+    pub fn remove(self, key: String) -> bool{
+        let db = DB::open_default(self.filepath).unwrap();
+        let ret = match db.delete(key.clone()) {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        ret
+    }
+}
+
 
 
 pub trait JSONMessage {
