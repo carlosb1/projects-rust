@@ -1,13 +1,37 @@
 use rocksdb::{DB, Options};
 use serde_json::Result;
+use std::collections::HashMap;
 
-pub struct DBRepository;
-
-/*
-impl DBRepository {
-
+pub struct DBRepository {
+    filepath: String
 }
-*/
+
+impl DBRepository {
+    fn new(filepath: String) -> DBRepository {
+        DBRepository{filepath: filepath}
+    }
+
+    fn save(self, key: String,  info: HashMap<String, String>){
+        let parsed_info = serde_json::to_string(&info).unwrap();
+        let db = DB::open_default(self.filepath).unwrap();
+        db.put(key, parsed_info).unwrap(); 
+    }
+
+    fn get(self, key: String) -> Option<HashMap<String, String>> {
+        let db = DB::open_default(self.filepath).unwrap();
+        let ret =  match db.get(key.clone()) {
+            Ok(Some(value)) =>  {
+                let tmp_val = String::from_utf8(value).unwrap();
+                let str_result = tmp_val.as_str();
+                Some(serde_json::from_str(str_result).unwrap())
+                },
+            Ok(None) =>  None,
+            Err(e) =>{ println!("operational problem encountered: {}", e); None},
+        };
+        db.delete(key); 
+        ret
+    }
+}
 
 fn main () {
     let mut info: Vec<String> = Vec::new();
