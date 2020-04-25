@@ -120,9 +120,9 @@ impl Message {
         Message{operation: "subscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
     }
 
-    pub fn unsuscribe(topic: String, user: String, address_source: String) -> Message {
+    pub fn unsuscribe(topic: String, user: String) -> Message {
         let mut addresses: HashMap<String, String> =  HashMap::new();
-        addresses.insert(user, address_source);
+        addresses.remove(&user);
         Message{operation: "unsubscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
     }
 
@@ -164,6 +164,7 @@ impl Encoder for MyBytesCodec {
         Ok(())
     }
 }
+#[derive(Clone)]
 pub struct Server;
 
 
