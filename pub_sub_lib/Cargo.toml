@@ -17,6 +17,11 @@ path = "src/server.rs"
 name = "client"
 path = "src/client.rs"
 
+
+[[bin]]
+name = "manager"
+path = "src/main.rs"
+
 [dependencies]
 tokio = { version = "0.2.17", features = ["net"] }
 tokio-util = { version = "0.2", features = ["codec"] }

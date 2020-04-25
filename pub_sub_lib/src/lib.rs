@@ -173,7 +173,7 @@ pub struct Server;
 
 impl Server {
     pub async fn run(self, address: String, user: String, replier: Arc<Mutex<Box<dyn MessageReplier>>>) -> Result<(), Box<dyn Error>> { 
-        println!("Trying to connect to {}", address)    ;
+        println!("Trying to connect to {}", address);
 
         let addr = address.as_str().parse::<SocketAddr>()?;
 
@@ -205,7 +205,7 @@ impl Server {
                                     };
                                 };
                                     framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
-                                                   .await.map_err(|e| println!("not response! {}", e)).ok();
+                                                       .await.map_err(|e| println!("not response! {}", e)).ok();
                           }
                             Err(e) => {
                                 println!("Error received while we are reading {}", e);

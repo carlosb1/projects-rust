@@ -112,6 +112,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //mock_replier.subscriptions.clone().get("user");
 
     let server = Server{};
-    rt.block_on(server.run(user, address,replier))
+    rt.block_on(server.run(address, user,replier))
 
 }

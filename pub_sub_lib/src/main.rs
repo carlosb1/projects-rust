@@ -12,7 +12,7 @@ use pub_sub::{Server, MessageReplier, Message, DBRepository, send, JSONMessage};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::error::Error;
-
+use std::{thread, time};
 
 
 pub trait UserInterface: Send + Sync{
@@ -46,7 +46,8 @@ impl Manager {
     }
     pub fn init(&self) {
         let replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new((*self).clone())));
-        (*self).clone().server.run(self.user.clone(), self.address.clone(), replier); 
+        let mut rt = Runtime::new().unwrap();
+        let _ =  rt.block_on((*self).clone().server.run(self.address.clone(), self.user.clone(), replier));
     }
 
    pub fn subscribe(self, topic: String, seed_address: String) { 
@@ -79,7 +80,6 @@ impl Manager {
 
    }
    pub fn unsubscribe<'a>(self, topic: String) -> Result<(), &'a str> {
-        let mut rt = Runtime::new().unwrap();
         let res = match self.db_info.get(topic.clone()) {
             Some(entry) => {
                 for (user, address) in entry.iter() {
@@ -99,7 +99,7 @@ impl MessageReplier for Manager {
     fn on_ack(self: Box<Self>, _: &Message) {
         println!("Ack received");
     }
-    fn on_subscribe(mut self: Box<Self>, messg: &Message)  -> Box<Message>{
+    fn on_subscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
         println!("susbcribed received");
 
         let mut users: HashMap<String, String> = match self.db_info.clone().get(messg.topic.clone()) {
@@ -113,7 +113,7 @@ impl MessageReplier for Manager {
         Box::new(Message::ack_subscribe(messg.topic.clone(), users.clone()))
 
     }
-    fn on_unsubscribe(mut self: Box<Self>, messg: &Message)  -> Box<Message>{
+    fn on_unsubscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
         println!("Unsubscribed received");
         if let Some(mut user_entry) = self.db_info.clone().get(messg.topic.clone()) {
             for (key, _) in messg.info.iter() {
@@ -127,7 +127,7 @@ impl MessageReplier for Manager {
         println!("On Nack received");
         println!("Error message {}?", messg.info.get("error").unwrap_or(&"No available error".to_string()));
     }
-    fn on_ack_subscribe(mut self: Box<Self>, messg: &Message) -> Box<Message>{
+    fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>{
         println!("Ack Login received");
         self.db_info.save(messg.topic.clone(), messg.info.clone());
         Box::new(Message::ack(self.user, self.address))
@@ -152,10 +152,16 @@ impl MessageReplier for Manager {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut rt = Runtime::new()?;
     let user = "user".to_string();
     let address = "127.0.0.1:12345".to_string();
     let filepath_db = "infodb".to_string();
+    let manager = Manager::new(filepath_db, user, address);
+    manager.init();
+    println!("It was initialized");
+    let sec_times = time::Duration::from_secs(60);
+    thread::sleep(sec_times);
+
+
     
     Ok(())
 }
