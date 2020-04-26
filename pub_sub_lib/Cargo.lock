@@ -466,6 +466,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5894c618ce612a3fa23881b152b608bafb8c56cfc22f434a3ba3120b40f7b587"
 
 [[package]]
+name = "pretty_env_logger"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "926d36b9553851b8b0005f1275891b392ee4d2d833852c417ed025477350fb9d"
+dependencies = [
+ "env_logger",
+ "log",
+]
+
+[[package]]
 name = "proc-macro-hack"
 version = "0.5.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -493,6 +503,8 @@ dependencies = [
  "bytes",
  "chrono",
  "futures",
+ "log",
+ "pretty_env_logger",
  "rocksdb",
  "serde",
  "serde_derive",

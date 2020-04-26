@@ -5,6 +5,9 @@ extern crate tokio;
 extern crate serde;
 extern crate serde_json;
 extern crate pub_sub;
+extern crate pretty_env_logger;
+extern crate log;
+
 
 
 use tokio::runtime::Runtime;
@@ -13,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::error::Error;
 use std::{thread, time};
-
+use log::info;
 
 pub trait UserInterface: Send + Sync{
     fn show(self, topic: String, msg: String);
@@ -26,7 +29,7 @@ pub struct CLI;
 
 impl UserInterface for CLI  {
     fn show(self, topic: String, msg: String) {
-        println!("{} {}", topic, msg);
+        info!("{} {}", topic, msg);
     }
 }
 
@@ -97,10 +100,10 @@ impl Manager {
 
 impl MessageReplier for Manager {
     fn on_ack(self: Box<Self>, _: &Message) {
-        println!("Ack received");
+        info!("Ack received");
     }
     fn on_subscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
-        println!("susbcribed received");
+        info!("susbcribed received");
 
         let mut users: HashMap<String, String> = match self.db_info.clone().get(messg.topic.clone()) {
             Some(val) =>{val.clone()}
@@ -114,7 +117,7 @@ impl MessageReplier for Manager {
 
     }
     fn on_unsubscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
-        println!("Unsubscribed received");
+        info!("Unsubscribed received");
         if let Some(mut user_entry) = self.db_info.clone().get(messg.topic.clone()) {
             for (key, _) in messg.info.iter() {
                 user_entry.remove(&key.clone());
@@ -124,16 +127,16 @@ impl MessageReplier for Manager {
         Box::new(Message::ack(self.user.clone(), self.address.clone()))
     }
     fn on_nack(self: Box<Self>, messg: &Message){
-        println!("On Nack received");
-        println!("Error message {}?", messg.info.get("error").unwrap_or(&"No available error".to_string()));
+        info!("On Nack received");
+        info!("Error message {}?", messg.info.get("error").unwrap_or(&"No available error".to_string()));
     }
     fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>{
-        println!("Ack Login received");
+        info!("Ack Login received");
         self.db_info.save(messg.topic.clone(), messg.info.clone());
         Box::new(Message::ack(self.user, self.address))
     }
     fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>{
-        println!("notification received");
+        info!("notification received");
         let result_message = Message::ack(self.user, self.address);
         let mesg = messg.mesg.clone();
         let topic = messg.topic.clone();
@@ -152,16 +155,14 @@ impl MessageReplier for Manager {
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    pretty_env_logger::init(); 
     let user = "user".to_string();
     let address = "127.0.0.1:12345".to_string();
     let filepath_db = "infodb".to_string();
     let manager = Manager::new(filepath_db, user, address);
     manager.init();
-    println!("It was initialized");
+    info!("It was initialized");
     let sec_times = time::Duration::from_secs(60);
     thread::sleep(sec_times);
-
-
-    
     Ok(())
 }

@@ -5,6 +5,8 @@ extern crate bytes;
 extern crate tokio;
 extern crate serde;
 extern crate serde_json;
+extern crate pretty_env_logger;
+extern crate log;
 
 
 use bytes::BytesMut;
@@ -20,6 +22,7 @@ use futures::{SinkExt, StreamExt};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use rocksdb::DB;
+use log::{info, error};
 
 #[derive(Clone)]
 pub struct DBRepository {
@@ -46,7 +49,7 @@ impl DBRepository {
                 Some(serde_json::from_str(str_result).unwrap())
                 },
             Ok(None) =>  None,
-            Err(e) =>{ println!("operational problem encountered: {}", e); None},
+            Err(e) =>{ error!("operational problem encountered: {}", e); None},
         };
         let _ =  db.delete(key); 
         ret
@@ -173,7 +176,7 @@ pub struct Server;
 
 impl Server {
     pub async fn run(self, address: String, user: String, replier: Arc<Mutex<Box<dyn MessageReplier>>>) -> Result<(), Box<dyn Error>> { 
-        println!("Trying to connect to {}", address);
+        info!("Trying to connect to {}", address);
 
         let addr = address.as_str().parse::<SocketAddr>()?;
 
@@ -184,7 +187,7 @@ impl Server {
                 let user = user.clone();
                 let address = address.clone();
 
-                println!("Wait for a new socket...");
+                info!("Wait for a new socket...");
                 let (mut socket, _) = listener.accept().await?;
                 tokio::spawn(async move {                 
                     let (r, w)  = socket.split();
@@ -201,14 +204,14 @@ impl Server {
                                     let str_message = String::from_utf8(message).unwrap();
                                     match  _manager.exec(str_message) {
                                         Some(response) => { response_message = response}
-                                        None => {println!("It is not necessary to reply the message")}
+                                        None => {info!("It is not necessary to reply the message")}
                                     };
                                 };
                                     framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
                                                        .await.map_err(|e| println!("not response! {}", e)).ok();
                           }
                             Err(e) => {
-                                println!("Error received while we are reading {}", e);
+                                error!("Error received while we are reading {}", e);
                             }
 
                         }
@@ -219,7 +222,7 @@ impl Server {
 }
 
 pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn Error>> {
-    println!("Trying to connect to {}", address);
+    info!("Trying to connect to {}", address);
     let remote_address: SocketAddr = address.parse().unwrap();
     let mut tcp = TcpStream::connect(&remote_address).await?;
     let (r, w) = tcp.split();
@@ -229,19 +232,18 @@ pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn
     
     let encoded: Vec<u8> = mesg.as_bytes().to_vec();
     framed_writer.send(encoded).await?;
-    println!("It is a correct response");
+    info!("It received a response");
 
     if let Some(frame) = framed_reader.next().await {
         match frame {
             Ok(response) => {
-                println!("I got a response");
-                println!("{:?}", response);
                 let str_messg= String::from_utf8(response).unwrap();
+                info!("{:?}", str_messg);
                 let messg: Message  = serde_json::from_str(&str_messg).unwrap();
                 return Ok(Box::new(messg))
             }
             Err(e) => {
-                println!("Error received while we are reading {}", e);
+                error!("Error received while we are reading {}", e);
                 return Err(Box::new(e))
             }
 
