@@ -52,18 +52,18 @@ impl DBRepository {
     }
 
     pub fn save(self, key: String,  info: HashMap<String, String>){
-        let parsed_info = serde_json::to_string(&info).unwrap();
-        let db = DB::open_default(self.filepath).unwrap();
-        db.put(key, parsed_info).unwrap(); 
+        let parsed_info = serde_json::to_string(&info).expect("It was not possible parse info correctly from json.");
+        let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
+        db.put(key, parsed_info).expect("It was not possible put info in the db"); 
     }
 
     pub fn get(self, key: String) -> Option<HashMap<String, String>> {
-        let db = DB::open_default(self.filepath).unwrap();
+        let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
         let ret =  match db.get(key.clone()) {
             Ok(Some(value)) =>  {
-                let tmp_val = String::from_utf8(value).unwrap();
+                let tmp_val = String::from_utf8(value).expect("It was not possible parse db value.");
                 let str_result = tmp_val.as_str();
-                Some(serde_json::from_str(str_result).unwrap())
+                Some(serde_json::from_str(str_result).expect("It was not possible to parse from json in the db."))
                 },
             Ok(None) =>  None,
             Err(e) =>{ error!("operational problem encountered: {}", e); None},
@@ -72,7 +72,7 @@ impl DBRepository {
         ret
     }
     pub fn contains(self, key: String) -> bool {
-        let db = DB::open_default(self.filepath).unwrap();
+        let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
         let ret = match db.get(key.clone()) {
             Ok(Some(_)) => true,
             Ok(None) => false,
@@ -82,7 +82,7 @@ impl DBRepository {
     }
 
     pub fn remove(self, key: String) -> bool{
-        let db = DB::open_default(self.filepath).unwrap();
+        let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
         let ret = match db.delete(key.clone()) {
             Ok(_) => true,
             Err(_) => false,
@@ -217,15 +217,15 @@ impl Server {
                              Ok(message) => {
                                 let mut response_message = Box::new(Message::ack(user, address));
                                 let _ = {
-                                    let _repl = replier.lock().unwrap(); 
+                                    let _repl = replier.lock().expect("It was not possible to unlock shared replier message"); 
                                     let _manager = MessageManager::new((*_repl).box_clone());
-                                    let str_message = String::from_utf8(message).unwrap();
+                                    let str_message = String::from_utf8(message).expect("It was not possible to parse message to a string");
                                     match  _manager.exec(str_message) {
                                         Some(response) => { response_message = response}
                                         None => {info!("It is not necessary to reply the message")}
                                     };
                                 };
-                                    framed_writer.send(response_message.to_json().unwrap().as_bytes().to_vec())
+                                    framed_writer.send(response_message.to_json().expect("Error parsing json message").as_bytes().to_vec())
                                                        .await.map_err(|e| println!("not response! {}", e)).ok();
                           }
                             Err(e) => {
@@ -242,7 +242,7 @@ impl Server {
 /// Send function for tokio. It sends json messages.
 pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn Error>> {
     info!("Trying to connect to {}", address);
-    let remote_address: SocketAddr = address.parse().unwrap();
+    let remote_address: SocketAddr = address.parse().expect("it was not possible to parse net address");
     let mut tcp = TcpStream::connect(&remote_address).await?;
     let (r, w) = tcp.split();
     
@@ -256,9 +256,9 @@ pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn
     if let Some(frame) = framed_reader.next().await {
         match frame {
             Ok(response) => {
-                let str_messg= String::from_utf8(response).unwrap();
+                let str_messg= String::from_utf8(response).expect("It was not possible to parse message to a string");
                 info!("{:?}", str_messg);
-                let messg: Message  = serde_json::from_str(&str_messg).unwrap();
+                let messg: Message  = serde_json::from_str(&str_messg).expect("It was not parsed json message to Message");
                 return Ok(Box::new(messg))
             }
             Err(e) => {
@@ -294,7 +294,7 @@ impl MessageManager  {
         MessageManager{replier: replier}
     }
     fn exec(self, str_messg: String) -> Option<Box<Message>> {
-        let messg: Message  = serde_json::from_str(&str_messg).unwrap();
+        let messg: Message  = serde_json::from_str(&str_messg).expect("It was not parsed json message to string");
         let oper = messg.operation.as_str();
         match oper {
             "ack" =>  {self.replier.on_ack(&messg); None},
@@ -336,11 +336,11 @@ impl Manager {
    pub fn subscribe(self, topic: String, seed_address: String) { 
         let mut rt = Runtime::new().unwrap();
         let message  = Message::subscribe(topic.to_string(),self.user.to_string(), self.address.to_string());
-        info!("Send subscription message {}?", message.to_json().unwrap());
-        let result:  Result<Box<Message>, Box<dyn Error>>  = rt.block_on(send(seed_address, message.to_json().unwrap())); 
+        info!("Send subscription message {}?", message.to_json().expect("Error parsing json message"));
+        let result:  Result<Box<Message>, Box<dyn Error>>  = rt.block_on(send(seed_address, message.to_json().expect("Error parsing json message"))); 
         match result {
             Ok(message) =>{
-                info!("Saving subscribe operation {}",message.to_json().unwrap().as_str());
+                info!("Saving subscribe operation {}",message.to_json().expect("Error parsing json message").as_str());
                 let users =  message.info.clone();
                 self.db_info.save(topic, users);
             },
@@ -356,8 +356,8 @@ impl Manager {
             Some(entry) => {
                 for (_, address) in entry.iter() {
                         let message = Message::notify(msg.clone(), topic.clone());
-                        info!("Send notification message {}?", message.to_json().unwrap());
-                        let _ = send(address.clone(), message.to_json().unwrap().to_string());
+                        info!("Send notification message {}?", message.to_json().expect("Error parsing json message"));
+                        let _ = send(address.clone(), message.to_json().expect("Error parsing json message").to_string());
                 }
                 Ok(())
             },
@@ -373,8 +373,8 @@ impl Manager {
             Some(entry) => {
                 for (user, address) in entry.iter() {
                         let message = Message::unsubscribe(topic.clone(), user.clone());
-                        info!("Send unsubscribe message {}?", message.to_json().unwrap());
-                        let _ = send(address.clone(), message.to_json().unwrap().to_string());
+                        info!("Send unsubscribe message {}?", message.to_json().expect("Error parsing json message"));
+                        let _ = send(address.clone(), message.to_json().expect("Error parsing json message").to_string());
                 }
                 Ok(())
             },
@@ -450,7 +450,7 @@ mod tests {
         let mut addresses: HashMap<String, String> = HashMap::new();
         addresses.insert("user1".to_string(),"127.0.0.1".to_string());
         let messg = Message::ack();
-        let str_messg: String  = serde_json::to_string(&messg).unwrap();
+        let str_messg: String  = serde_json::to_string(&messg).expect("It was not parsed json message to string");
         println!("{}", str_messg.as_str());
         assert_eq!("{\"operation\":\"ack\",\"channel\":\"\",\"info\":{},\"mesg\":\"\"}", str_messg.as_str())
     }
@@ -458,7 +458,7 @@ mod tests {
     #[test]
     fn json_manager_should_parse_correctly_login_message() {
         let _message_manager = MessageManager::new();
-        let vec_messg = Message::ack().to_json().unwrap().as_bytes().to_vec();
+        let vec_messg = Message::ack().to_json().expect("Error parsing json message").as_bytes().to_vec();
 
         let message = String::from_utf8(vec_messg).unwrap();
         println!("Json parser for: {:?}", message);
