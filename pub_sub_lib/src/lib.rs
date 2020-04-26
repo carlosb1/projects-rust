@@ -9,6 +9,7 @@ extern crate pretty_env_logger;
 extern crate log;
 
 
+use tokio::runtime::Runtime;
 use bytes::BytesMut;
 use std::io;
 use tokio::net::TcpListener;
@@ -24,6 +25,22 @@ use std::collections::HashMap;
 use rocksdb::DB;
 use log::{info, error};
 
+/// User interface trait. It specifies a contract of functions to be used as User interface.
+pub trait UserInterface: Send + Sync{
+    fn show(self, topic: String, msg: String);
+}
+
+/// CLI implementation for a CLI User interface
+#[derive(Clone)]
+pub struct CLI;
+
+impl UserInterface for CLI  {
+    fn show(self, topic: String, msg: String) {
+        info!("{} {}", topic, msg);
+    }
+}
+
+/// DB repository pattern to save our shared state... subscriptions, addresses, etc...
 #[derive(Clone)]
 pub struct DBRepository {
     filepath: String
@@ -75,13 +92,13 @@ impl DBRepository {
 }
 
 
-
+/// Trait for JSON message. Function contracts for serialize messages.
 pub trait JSONMessage {
     fn to_json(&self) -> Result<String, serde_json::Error>;
     fn get_operation(self) -> String;
 }
 
-
+/// Message class for messages. It is serialize in a json message.
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Message {
     pub operation: String,
@@ -99,7 +116,7 @@ impl JSONMessage for Message {
     }
 }
 
-
+/// Implement factory functions for each type message.
 impl Message {
     pub fn new(operation: String) -> Message {
         Message{operation: operation, ..Default::default()}
@@ -139,8 +156,8 @@ impl Message {
 
 }
 
+/// Byte encoder / decoder for Tokio.
 pub struct MyBytesCodec;
-
 
     
 impl Decoder for MyBytesCodec {
@@ -167,10 +184,11 @@ impl Encoder for MyBytesCodec {
         Ok(())
     }
 }
+
+
+/// Server TCP implementation for tokio.
 #[derive(Clone)]
 pub struct Server;
-
-
 
 
 
@@ -221,6 +239,7 @@ impl Server {
     }
 }
 
+/// Send function for tokio. It sends json messages.
 pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn Error>> {
     info!("Trying to connect to {}", address);
     let remote_address: SocketAddr = address.parse().unwrap();
@@ -253,7 +272,7 @@ pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn
     }
 }
 
-
+/// Trait for replies. it includes trigger functions for each type of message.
 pub trait MessageReplier: Send + Sync {
     fn on_ack(self: Box<Self>, messg: &Message);
     fn on_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>;
@@ -265,6 +284,7 @@ pub trait MessageReplier: Send + Sync {
     fn box_clone(&self) -> Box<dyn MessageReplier>;
 }
 
+/// Dispatcher class for each type of responses.
 pub struct MessageManager {
     replier: Box<dyn MessageReplier>,
 }
@@ -288,6 +308,136 @@ impl MessageManager  {
 
     }
 }
+
+/// Main manager class. It uses client and server classes for a subscribe and publisher pattern.
+#[derive(Clone)]
+pub struct Manager{
+    filepath_db: String,
+    user: String, 
+    address: String,
+    server: Server,
+    db_info: DBRepository,
+    interface: Box<CLI>
+}
+
+impl Manager {
+    pub fn new(filepath_db: String, user: String, address: String) -> Manager {
+        Manager{filepath_db: filepath_db.clone(), user: user.clone(), address: address.clone(), server: Server{},db_info: DBRepository::new(filepath_db.clone()),interface: Box::new(CLI{})}
+    }
+    /// Init tcp server.
+    pub fn init(&self) {
+        let replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new((*self).clone())));
+        let mut rt = Runtime::new().unwrap();
+        let _ =  rt.block_on((*self).clone().server.run(self.address.clone(), self.user.clone(), replier));
+        info!("Manager initialized");
+    }
+
+   /// Send subscription to a channel via a known client who is subscribed.
+   pub fn subscribe(self, topic: String, seed_address: String) { 
+        let mut rt = Runtime::new().unwrap();
+        let message  = Message::subscribe(topic.to_string(),self.user.to_string(), self.address.to_string());
+        info!("Send subscription message {}?", message.to_json().unwrap());
+        let result:  Result<Box<Message>, Box<dyn Error>>  = rt.block_on(send(seed_address, message.to_json().unwrap())); 
+        match result {
+            Ok(message) =>{
+                info!("Saving subscribe operation {}",message.to_json().unwrap().as_str());
+                let users =  message.info.clone();
+                self.db_info.save(topic, users);
+            },
+           Err(e) => {
+             error!("Error response from susbscribe {}?", e)
+            },
+        }
+   }
+
+   /// Notify operation for a topic where we are susbscribed.
+   pub fn notify<'a>(self, topic: String, msg: String) -> Result<(), &'a str>  {
+        let res = match self.db_info.get(topic.clone()) {
+            Some(entry) => {
+                for (_, address) in entry.iter() {
+                        let message = Message::notify(msg.clone(), topic.clone());
+                        info!("Send notification message {}?", message.to_json().unwrap());
+                        let _ = send(address.clone(), message.to_json().unwrap().to_string());
+                }
+                Ok(())
+            },
+            None => { Err("It was not found")}
+        };
+        res
+
+   }
+
+   /// Unsubscribe from topic.
+   pub fn unsubscribe<'a>(self, topic: String) -> Result<(), &'a str> {
+        let res = match self.db_info.get(topic.clone()) {
+            Some(entry) => {
+                for (user, address) in entry.iter() {
+                        let message = Message::unsubscribe(topic.clone(), user.clone());
+                        info!("Send unsubscribe message {}?", message.to_json().unwrap());
+                        let _ = send(address.clone(), message.to_json().unwrap().to_string());
+                }
+                Ok(())
+            },
+            None => { Err("It was not found")}
+        };
+        res
+   }
+}
+
+/// Replier implementation for the manager. 
+impl MessageReplier for Manager {
+    fn on_ack(self: Box<Self>, _: &Message) {
+        info!("Ack received");
+    }
+    fn on_subscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
+        info!("susbcribed received");
+
+        let mut users: HashMap<String, String> = match self.db_info.clone().get(messg.topic.clone()) {
+            Some(val) =>{val.clone()}
+            None => { HashMap::new()}
+        };
+        for (user, addr) in messg.info.iter() {
+            users.insert(user.clone(), addr.clone());
+        }
+        self.db_info.save(messg.topic.clone(), users.clone());
+        Box::new(Message::ack_subscribe(messg.topic.clone(), users.clone()))
+
+    }
+    fn on_unsubscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
+        info!("Unsubscribed received");
+        if let Some(mut user_entry) = self.db_info.clone().get(messg.topic.clone()) {
+            for (key, _) in messg.info.iter() {
+                user_entry.remove(&key.clone());
+            }
+            self.db_info.save(messg.topic.clone(), user_entry)
+        }
+        Box::new(Message::ack(self.user.clone(), self.address.clone()))
+    }
+    fn on_nack(self: Box<Self>, messg: &Message){
+        info!("On Nack received");
+        info!("Error message {}?", messg.info.get("error").unwrap_or(&"No available error".to_string()));
+    }
+    fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>{
+        info!("Ack Login received");
+        self.db_info.save(messg.topic.clone(), messg.info.clone());
+        Box::new(Message::ack(self.user, self.address))
+    }
+    fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>{
+        info!("notification received");
+        let result_message = Message::ack(self.user, self.address);
+        let mesg = messg.mesg.clone();
+        let topic = messg.topic.clone();
+        self.interface.show(topic, mesg);
+        Box::new(result_message)
+    }
+    fn new_ack(self: Box<Self>) -> Box<Message> {
+        Box::new(Message::ack(self.user, self.address))
+    }
+    fn box_clone(&self)-> Box<dyn MessageReplier> {
+        Box::new((*self).clone()) 
+    }
+}
+
 
 
 

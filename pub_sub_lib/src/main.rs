@@ -8,12 +8,10 @@ extern crate pub_sub;
 extern crate pretty_env_logger;
 extern crate log;
 
-pub mod manager;
 
 use std::{thread, time};
 use log::info;
-use manager::Manager;
-
+use pub_sub::Manager;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init(); 

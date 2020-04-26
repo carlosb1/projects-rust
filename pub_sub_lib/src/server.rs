@@ -10,27 +10,10 @@ extern crate pub_sub;
 
 
 use tokio::runtime::Runtime;
-use pub_sub::{Server, MessageReplier, Message};
+use pub_sub::{Server, MessageReplier, Message, UserInterface, CLI};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use log::info;
-
-
-pub trait UserInterface: Send + Sync{
-    fn show(self, topic: String, msg: String);
-}
-
-
-
-#[derive(Clone)]
-pub struct CLI;
-
-impl UserInterface for CLI  {
-    fn show(self, topic: String, msg: String) {
-        info!("{} {}", topic, msg);
-    }
-}
-
 
 
 #[derive(Clone)]
@@ -112,7 +95,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mock_replier = MockReplier::new(user.clone(), address.clone());
     let replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new(mock_replier))); 
-    //mock_replier.subscriptions.clone().get("user");
     let server = Server{};
     rt.block_on(server.run(address, user,replier))
 
