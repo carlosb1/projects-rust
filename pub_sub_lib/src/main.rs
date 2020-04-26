@@ -86,7 +86,7 @@ impl Manager {
         let res = match self.db_info.get(topic.clone()) {
             Some(entry) => {
                 for (user, address) in entry.iter() {
-                        let message = Message::unsuscribe(topic.clone(), user.clone());
+                        let message = Message::unsubscribe(topic.clone(), user.clone());
                         let _ = send(address.clone(), message.to_json().unwrap().to_string());
                 }
                 Ok(())

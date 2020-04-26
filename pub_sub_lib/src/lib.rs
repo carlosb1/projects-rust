@@ -123,7 +123,7 @@ impl Message {
         Message{operation: "subscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
     }
 
-    pub fn unsuscribe(topic: String, user: String) -> Message {
+    pub fn unsubscribe(topic: String, user: String) -> Message {
         let mut addresses: HashMap<String, String> =  HashMap::new();
         addresses.remove(&user);
         Message{operation: "unsubscribe".to_string(), topic: topic,  info: addresses, ..Default::default()}
