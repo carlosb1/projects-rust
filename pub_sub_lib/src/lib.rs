@@ -240,7 +240,7 @@ impl Server {
 }
 
 /// Send function for tokio. It sends json messages.
-pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn Error>> {
+pub async fn send(address: &str, mesg: &str) -> Result<Box<Message>, Box<dyn Error>> {
     info!("Trying to connect to {}", address);
     let remote_address: SocketAddr = address.parse().expect("it was not possible to parse net address");
     let mut tcp = TcpStream::connect(&remote_address).await?;
@@ -337,7 +337,7 @@ impl Manager {
         let mut rt = Runtime::new().unwrap();
         let message  = Message::subscribe(topic.to_string(),self.user.to_string(), self.address.to_string());
         info!("Send subscription message {}?", message.to_json().expect("Error parsing json message"));
-        let result:  Result<Box<Message>, Box<dyn Error>>  = rt.block_on(send(seed_address, message.to_json().expect("Error parsing json message"))); 
+        let result:  Result<Box<Message>, Box<dyn Error>>  = rt.block_on(send(seed_address.as_str(), message.to_json().expect("Error parsing json message").as_str())); 
         match result {
             Ok(message) =>{
                 info!("Saving subscribe operation {}",message.to_json().expect("Error parsing json message").as_str());
@@ -357,7 +357,7 @@ impl Manager {
                 for (_, address) in entry.iter() {
                         let message = Message::notify(msg.clone(), topic.clone());
                         info!("Send notification message {}?", message.to_json().expect("Error parsing json message"));
-                        let _ = send(address.clone(), message.to_json().expect("Error parsing json message").to_string());
+                        let _ = send(address.as_str(), message.to_json().expect("Error parsing json message").as_str());
                 }
                 Ok(())
             },
@@ -374,7 +374,7 @@ impl Manager {
                 for (user, address) in entry.iter() {
                         let message = Message::unsubscribe(topic.clone(), user.clone());
                         info!("Send unsubscribe message {}?", message.to_json().expect("Error parsing json message"));
-                        let _ = send(address.clone(), message.to_json().expect("Error parsing json message").to_string());
+                        let _ = send(address.as_str(), message.to_json().expect("Error parsing json message").as_str());
                 }
                 Ok(())
             },
