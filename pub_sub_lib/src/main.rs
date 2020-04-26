@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::error::Error;
 use std::{thread, time};
-use log::info;
+use log::{info, error};
 
 pub trait UserInterface: Send + Sync{
     fn show(self, topic: String, msg: String);
@@ -51,20 +51,22 @@ impl Manager {
         let replier: Arc<Mutex<Box<dyn MessageReplier>>> = Arc::new(Mutex::new(Box::new((*self).clone())));
         let mut rt = Runtime::new().unwrap();
         let _ =  rt.block_on((*self).clone().server.run(self.address.clone(), self.user.clone(), replier));
+        info!("Manager initialized");
     }
 
    pub fn subscribe(self, topic: String, seed_address: String) { 
         let mut rt = Runtime::new().unwrap();
         let message  = Message::subscribe(topic.to_string(),self.user.to_string(), self.address.to_string());
+        info!("Send subscription message {}?", message.to_json().unwrap());
         let result:  Result<Box<Message>, Box<dyn Error>>  = rt.block_on(send(seed_address, message.to_json().unwrap())); 
         match result {
             Ok(message) =>{
+                info!("Saving subscribe operation {}",message.to_json().unwrap().as_str());
                 let users =  message.info.clone();
                 self.db_info.save(topic, users);
-                println!("{}",message.to_json().unwrap().as_str());
             },
            Err(e) => {
-             println!("{}?", e)
+             error!("Error response from susbscribe {}?", e)
             },
         }
    }
@@ -73,6 +75,7 @@ impl Manager {
             Some(entry) => {
                 for (_, address) in entry.iter() {
                         let message = Message::notify(msg.clone(), topic.clone());
+                        info!("Send notification message {}?", message.to_json().unwrap());
                         let _ = send(address.clone(), message.to_json().unwrap().to_string());
                 }
                 Ok(())
@@ -87,6 +90,7 @@ impl Manager {
             Some(entry) => {
                 for (user, address) in entry.iter() {
                         let message = Message::unsubscribe(topic.clone(), user.clone());
+                        info!("Send unsubscribe message {}?", message.to_json().unwrap());
                         let _ = send(address.clone(), message.to_json().unwrap().to_string());
                 }
                 Ok(())
