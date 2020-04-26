@@ -46,20 +46,20 @@ pub struct DBRepository {
     filepath: String
 }
 
-impl DBRepository {
+impl DBRepository{
     pub fn new(filepath: String) -> DBRepository {
         DBRepository{filepath: filepath}
     }
 
-    pub fn save(self, key: String,  info: HashMap<String, String>){
+    pub fn save(self, key: &str,  info: HashMap<String, String>){
         let parsed_info = serde_json::to_string(&info).expect("It was not possible parse info correctly from json.");
         let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
         db.put(key, parsed_info).expect("It was not possible put info in the db"); 
     }
 
-    pub fn get(self, key: String) -> Option<HashMap<String, String>> {
+    pub fn get(self, key: &str) -> Option<HashMap<String, String>> {
         let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
-        let ret =  match db.get(key.clone()) {
+        let ret =  match db.get(key) {
             Ok(Some(value)) =>  {
                 let tmp_val = String::from_utf8(value).expect("It was not possible parse db value.");
                 let str_result = tmp_val.as_str();
@@ -71,9 +71,9 @@ impl DBRepository {
         let _ =  db.delete(key); 
         ret
     }
-    pub fn contains(self, key: String) -> bool {
+    pub fn contains(self, key: &str) -> bool {
         let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
-        let ret = match db.get(key.clone()) {
+        let ret = match db.get(key) {
             Ok(Some(_)) => true,
             Ok(None) => false,
             Err(_) => false,
@@ -81,9 +81,9 @@ impl DBRepository {
         ret  
     }
 
-    pub fn remove(self, key: String) -> bool{
+    pub fn remove(self, key: &str) -> bool{
         let db = DB::open_default(self.filepath).expect("It was not possible to open db file.");
-        let ret = match db.delete(key.clone()) {
+        let ret = match db.delete(key) {
             Ok(_) => true,
             Err(_) => false,
         };
@@ -268,7 +268,7 @@ pub async fn send(address: String, mesg: String) -> Result<Box<Message>, Box<dyn
 
         }
     } else  {
-        return Err(Box::new(std::io::Error::new(ErrorKind::Other, "uchs")))
+        return Err(Box::new(std::io::Error::new(ErrorKind::Other, "It was no possible to receive response from server")))
     }
 }
 
@@ -342,7 +342,7 @@ impl Manager {
             Ok(message) =>{
                 info!("Saving subscribe operation {}",message.to_json().expect("Error parsing json message").as_str());
                 let users =  message.info.clone();
-                self.db_info.save(topic, users);
+                self.db_info.save(topic.as_str(), users);
             },
            Err(e) => {
              error!("Error response from susbscribe {}?", e)
@@ -352,7 +352,7 @@ impl Manager {
 
    /// Notify operation for a topic where we are susbscribed.
    pub fn notify<'a>(self, topic: String, msg: String) -> Result<(), &'a str>  {
-        let res = match self.db_info.get(topic.clone()) {
+        let res = match self.db_info.get(topic.as_str()) {
             Some(entry) => {
                 for (_, address) in entry.iter() {
                         let message = Message::notify(msg.clone(), topic.clone());
@@ -369,7 +369,7 @@ impl Manager {
 
    /// Unsubscribe from topic.
    pub fn unsubscribe<'a>(self, topic: String) -> Result<(), &'a str> {
-        let res = match self.db_info.get(topic.clone()) {
+        let res = match self.db_info.get(topic.as_str()) {
             Some(entry) => {
                 for (user, address) in entry.iter() {
                         let message = Message::unsubscribe(topic.clone(), user.clone());
@@ -392,24 +392,24 @@ impl MessageReplier for Manager {
     fn on_subscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
         info!("susbcribed received");
 
-        let mut users: HashMap<String, String> = match self.db_info.clone().get(messg.topic.clone()) {
+        let mut users: HashMap<String, String> = match self.db_info.clone().get(messg.topic.as_str()) {
             Some(val) =>{val.clone()}
             None => { HashMap::new()}
         };
         for (user, addr) in messg.info.iter() {
             users.insert(user.clone(), addr.clone());
         }
-        self.db_info.save(messg.topic.clone(), users.clone());
+        self.db_info.save(messg.topic.as_str(), users.clone());
         Box::new(Message::ack_subscribe(messg.topic.clone(), users.clone()))
 
     }
     fn on_unsubscribe(self: Box<Self>, messg: &Message)  -> Box<Message>{
         info!("Unsubscribed received");
-        if let Some(mut user_entry) = self.db_info.clone().get(messg.topic.clone()) {
+        if let Some(mut user_entry) = self.db_info.clone().get(messg.topic.as_str()) {
             for (key, _) in messg.info.iter() {
                 user_entry.remove(&key.clone());
             }
-            self.db_info.save(messg.topic.clone(), user_entry)
+            self.db_info.save(messg.topic.as_str(), user_entry)
         }
         Box::new(Message::ack(self.user.clone(), self.address.clone()))
     }
@@ -419,7 +419,7 @@ impl MessageReplier for Manager {
     }
     fn on_ack_subscribe(self: Box<Self>, messg: &Message) -> Box<Message>{
         info!("Ack Login received");
-        self.db_info.save(messg.topic.clone(), messg.info.clone());
+        self.db_info.save(messg.topic.as_str(), messg.info.clone());
         Box::new(Message::ack(self.user, self.address))
     }
     fn on_notify(self: Box<Self>, messg: &Message) -> Box<Message>{
