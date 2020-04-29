@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
 use scraper::{Html, Selector};
 use teloxide::prelude::*;
 use url::Url;
@@ -21,8 +21,9 @@ async fn main(){
        rx.for_each(|message| async move {
             match message.update.text() {
                 Some(text) => {
-                    if is_link(text) { 
-                        download_and_parse(text);    
+                    if is_link(text) {
+                        log::info!("We got a link! ");
+                        let _ = download_and_parse(text).await;    
                     }
                 },
                 None => {},
@@ -42,19 +43,23 @@ fn is_link(text: &str) -> bool{
      }
 }
 
-fn download_and_parse<'a> (link: &str) -> Result<(), &'a str>{
-    let res = reqwest::blocking::get(link).unwrap();
-    println!("Status = {}", res.status());
-    println!("Headers = {:?}", res.headers());
-    
-    let body = res.text().unwrap();
+async fn download_and_parse<'a> (link: &str) -> Result<(), &'a str>{
+    match reqwest::get(link).await{
+        Ok(info) => {
+            let body = info.text().await.unwrap_or("fuck you".to_string());
+            let fragment = Html::parse_document(&body);
+            let title = fragment.select(&Selector::parse(r#"meta[property="og:title"]"#).unwrap()).next().unwrap().value().attr("content");
+            let description = fragment.select(&Selector::parse(r#"meta[property="og:description"]"#).unwrap()).next().unwrap().value().attr("content");
+            log::info!(" title {:?}", title.unwrap());
+            log::info!(" descrp {:?}", description.unwrap());
+            Ok(())
+        }
+        Err(_) => { 
+            log::error!("I screwed up");
+            Err("It was not possible to download")
+        }
+    }
 
-    let fragment = Html::parse_document(&body);
-    let title = fragment.select(&Selector::parse(r#"meta[property="og:title"]"#).unwrap()).next().unwrap().value().attr("content");
-    let description = fragment.select(&Selector::parse(r#"meta[property="og:description"]"#).unwrap()).next().unwrap().value().attr("content");
-    println!("{:?}", title.unwrap());
-    println!("{:?}", description.unwrap());
-    Ok(())
 }
 
 
