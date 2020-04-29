@@ -1,17 +1,13 @@
-    use serde::{Deserialize, Serialize};
 use scraper::{Html, Selector};
 use teloxide::prelude::*;
 use url::Url;
+use std::collections::HashMap;
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct NewInfo {
-    title: String,
-    link: String,
-    description: String,
-}
+const ADDRESS_SERVER_NEWS: &str = "http://127.0.0.1:7700/";
 
 #[tokio::main]
 async fn main(){
+    
     teloxide::enable_logging!();
     log::info!("Starting ping pong bot!");
 
@@ -63,9 +59,17 @@ async fn download_and_parse<'a> (link: &str) -> Result<(), &'a str>{
 }
 
 
-    /*
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-
-    Ok(())
+async fn upload_link_info (link: &str, title: &str, descrip: &str) {
+    let mut info_to_upload = HashMap::new();
+    info_to_upload.insert("link", link);
+    info_to_upload.insert("title", title);
+    info_to_upload.insert("description", descrip);
+    
+    let res = reqwest::Client::new().post(ADDRESS_SERVER_NEWS).json(&info_to_upload).send().await;
+    match res {
+        Ok(_) =>  {log::info!("It was uploaded correctly");}
+        Err(e) => {log::info!("{:}", e);}
+    };
 }
-    */
+
+
