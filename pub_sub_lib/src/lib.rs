@@ -1,14 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate bytes;
-extern crate tokio;
-extern crate serde;
-extern crate serde_json;
-extern crate pretty_env_logger;
-extern crate log;
-
-
 use tokio::runtime::Runtime;
 use bytes::BytesMut;
 use std::io;

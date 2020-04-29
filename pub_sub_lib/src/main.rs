@@ -1,14 +1,3 @@
-extern crate serde_derive;
-
-extern crate bytes;
-extern crate tokio;
-extern crate serde;
-extern crate serde_json;
-extern crate pub_sub;
-extern crate pretty_env_logger;
-extern crate log;
-
-
 use std::{thread, time};
 use log::info;
 use pub_sub::Manager;

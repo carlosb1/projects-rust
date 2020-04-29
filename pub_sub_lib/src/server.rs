@@ -1,14 +1,5 @@
 extern crate serde_derive;
 
-extern crate bytes;
-extern crate tokio;
-extern crate serde;
-extern crate serde_json;
-extern crate pretty_env_logger;
-extern crate log;
-extern crate pub_sub;
-
-
 use tokio::runtime::Runtime;
 use pub_sub::{Server, MessageReplier, Message, UserInterface, CLI};
 use std::sync::{Arc, Mutex};
