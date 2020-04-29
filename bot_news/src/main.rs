@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use scraper::{Html, Selector};
 use teloxide::prelude::*;
-
+use url::Url;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NewInfo {
@@ -19,16 +19,31 @@ async fn main(){
 
     Dispatcher::new(bot).messages_handler( |rx: DispatcherHandlerRx<Message>| {
        rx.for_each(|message| async move {
-            let text = message.update.text().unwrap();
-            download_and_parse(text);
+            match message.update.text() {
+                Some(text) => {
+                    if is_link(text) { 
+                        download_and_parse(text);    
+                    }
+                },
+                None => {},
+            };
+
             message.answer("pong").send().await.log_on_error().await;
        })
     }).dispatch().await;
 
 }
 
-fn download_and_parse (text: &str) {
-    let res = reqwest::blocking::get("https://elpais.com/tecnologia/2020-04-27/whatsapp-asegura-que-la-medida-para-limitar-el-reenvio-de-mensajes-ha-reducido-la-viralidad-en-un-70.html").unwrap();
+fn is_link(text: &str) -> bool{
+    let possible_link = Url::parse(text);
+    match possible_link {
+        Ok(_) => true,
+        Err(_) => false, 
+     }
+}
+
+fn download_and_parse<'a> (link: &str) -> Result<(), &'a str>{
+    let res = reqwest::blocking::get(link).unwrap();
     println!("Status = {}", res.status());
     println!("Headers = {:?}", res.headers());
     
@@ -39,7 +54,7 @@ fn download_and_parse (text: &str) {
     let description = fragment.select(&Selector::parse(r#"meta[property="og:description"]"#).unwrap()).next().unwrap().value().attr("content");
     println!("{:?}", title.unwrap());
     println!("{:?}", description.unwrap());
-
+    Ok(())
 }
 
 
