@@ -1,0 +1,10 @@
+version: '3'
+services:
+   bot:
+        build: ./bot
+        working_dir: /bot
+   searchengine:
+        image: getmeili/meilisearch
+        ports:
+           - 7700:7700
+
