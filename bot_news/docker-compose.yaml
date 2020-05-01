@@ -6,7 +6,7 @@ services:
         env_file:
                 - .env
    searchengine:
-        image: getmeili/meilisearch
+        build: ./MeiliSearch
         ports:
            - 7700:7700
 
