@@ -3,6 +3,8 @@ services:
    bot:
         build: ./bot
         working_dir: /bot
+        env_file:
+                - .env
    searchengine:
         image: getmeili/meilisearch
         ports:
