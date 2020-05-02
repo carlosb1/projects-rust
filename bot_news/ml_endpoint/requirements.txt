@@ -21,7 +21,7 @@ newspaper3k == 0.2.8
 pymongo == 3.7.2
 
 # app.py: 4
-requests == 2.11.1
+requests == 2.20.0
 
 gunicorn == 19.9.0
 
