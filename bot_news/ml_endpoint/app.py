@@ -20,32 +20,26 @@ app = Flask(__name__, static_folder="./dist/static", template_folder="./dist")
 # Configure CORS feature
 cors = CORS(app, resources={r"/api/*": {"origins": '*'}})
 app.config['CORS_HEADER'] = 'Content-Type'
-logger = logging.getLogger(__name__)
 
 
 @app.route('/api/news', methods=['GET'])
 @cross_origin(origin='*')
 def get_news():
+    app.logger.info("Receiving get query")
     return jsonify({'result': 'ok'})
 
 
 @app.route('/api/news', methods=['POST'])
 @cross_origin(origin='*')
 def post_news():
+    app.logger.info("Receiving post query")
     content = request.json
+    app.logger.info("-----------------")
+    app.logger.info(f'{str(content)}')
+    app.logger.info("-----------------")
+
     list_ids = []
-    if 'urls' not in content or len(content['urls']) == 0:
-        return factory_responses.new400()
     return factory_responses.new201({'ids': list_ids})
-
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def catch_all(path):
-    if app.debug:
-        return requests.get('http://0.0.0.0:8080/{}'.format(path)).text
-    return render_template("index.html")
-
 
 # @celery.task
 # def run_batch(database_id, url):
@@ -56,10 +50,15 @@ if __name__ == '__main__':
     host = '0.0.0.0'
     port = 5002
     debug = True
+
+    gunicorn_error_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers.extend(gunicorn_error_logger.handlers)
+    app.logger.setLevel(logging.DEBUG)
+
 #    celery_argvs = ['worker', '--loglevel=DEBUG']
 #    import threading
 #    celery_thread = threading.Thread(target=celery.worker_main,
 #                                      args=[celery_argvs])
 #    celery_thread.start()
-    print("Running API REST")
+    app.logger.info("Running API REST")
     app.run(host=host, port=port, debug=debug)
