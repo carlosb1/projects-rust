@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hasher};
 
-const ADDRESS_SERVER_NEWS: &str = "http://127.0.0.1:7700/indexes/news/documents";
+const ADDRESS_SERVER_SEARCHER: &str = "http://127.0.0.1:7700/indexes/news/documents";
+const ADDRESS_SERVER_ML: &str = "http://127.0.0.1:5002/api/news";
 
 #[tokio::main]
 async fn main(){
@@ -22,8 +23,8 @@ async fn main(){
                     if is_link(text) {
                         log::info!("We got a link! ");
                         match download_and_parse(text.to_string()).await{
-                            Ok((link, title, description, splitted_keywords)) => {
-                                    upload_link_info(link.as_str(), title.as_str(), description.as_str(), splitted_keywords).await;
+                            Ok((link, title, description)) => {
+                                    upload_link_info(link.as_str(), title.as_str(), description.as_str()).await;
                             }
                             Err(str_e) => {log::error!(" {:}",&str_e);}
                         };
@@ -46,19 +47,16 @@ fn is_link(text: &str) -> bool{
      }
 }
 
-async fn download_and_parse<'a> (link: String) -> Result<(String, String, String, Vec<String>), &'a str>{
+async fn download_and_parse<'a> (link: String) -> Result<(String, String, String), &'a str>{
     match reqwest::get(link.as_str()).await{
         Ok(info) => {
             let body = info.text().await.unwrap_or("fuck you".to_string());
             let fragment = Html::parse_document(&body);
             let title = fragment.select(&Selector::parse(r#"meta[property="og:title"]"#).unwrap()).next().unwrap().value().attr("content").unwrap_or("");
             let description = fragment.select(&Selector::parse(r#"meta[property="og:description"]"#).unwrap()).next().unwrap().value().attr("content").unwrap_or("");
-            let keywords = fragment.select(&Selector::parse(r#"meta[name="keywords"]"#).unwrap()).next().unwrap().value().attr("content").unwrap_or("");
-            let splitted_keywords = keywords.split(".").map(|s| s.to_string()).collect();
             log::info!(" title {:?}", title);
             log::info!(" descrp {:?}", description);
-            log::info!(" splitted_keywords {:?}", splitted_keywords);
-            Ok((link, title.to_string(), description.to_string(), splitted_keywords))
+            Ok((link, title.to_string(), description.to_string()))
         }
         Err(_) => { 
             log::error!("I screwed up");
@@ -69,7 +67,7 @@ async fn download_and_parse<'a> (link: String) -> Result<(String, String, String
 }
 
 
-async fn upload_link_info (link: &str, title: &str, descrip: &str, keywords: Vec<String>) {
+async fn upload_link_info (link: &str, title: &str, descrip: &str) {
     log::info!("Uploading link info");
     let mut info_to_upload = HashMap::new();
     let mut hasher = DefaultHasher::new();
@@ -80,18 +78,17 @@ async fn upload_link_info (link: &str, title: &str, descrip: &str, keywords: Vec
     info_to_upload.insert("title", title);
     info_to_upload.insert("description", descrip);
     
-    /*
-    let mut count: u8 = 0;
-    for keyword in keywords {
-        let tag = format!("tag{}",count.clone());
-        info_to_upload.insert(tag.as_str(), keyword.as_str());
-        count += 1;
-    }
-    */
     let list_uploads = vec!{info_to_upload};
-    let res = reqwest::Client::new().post(ADDRESS_SERVER_NEWS).json(&list_uploads).send().await;
+    // Upload info in search server
+    let res = reqwest::Client::new().post(ADDRESS_SERVER_SEARCHER).json(&list_uploads).send().await;
     match res {
-        Ok(_) =>  {log::info!("It was uploaded correctly");}
+        Ok(_) =>  {log::info!("It was uploaded correctly in the search server");}
+        Err(e) => {log::info!("{:}", e);}
+    };
+    // Upload info in ml server
+    let res = reqwest::Client::new().post(ADDRESS_SERVER_ML).json(&list_uploads).send().await;
+    match res {
+        Ok(_) =>  {log::info!("It was uploaded correctly in the ml server");}
         Err(e) => {log::info!("{:}", e);}
     };
 }
