@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 import logging
 import os
 
@@ -10,11 +11,12 @@ from pymongo import MongoClient
 from celery import Celery
 
 from factory_responses import FactoryResponse
+from utils import check_and_download_web
 
-
-redis_address = os.getenv('REDIS_ADDRESS','redis://0.0.0.0:6379/0')
+redis_address = os.getenv('REDIS_ADDRESS', 'redis://0.0.0.0:6379/0')
 mongo_host = os.getenv('MONGO_HOST', '0.0.0.0')
 mongo_port = os.getenv('MONGO_PORT', 27017)
+output_folder_download = Path('./temp/')
 
 
 def get_collection(host: str, port: int):
@@ -71,7 +73,7 @@ def post_news():
 @celery.task
 def run_batch(link: str, title: str, description: str):
         app.logger.info(f'Executing analysed batch task {str(link)}')
-
+        check_and_download_web(link, output_folder_download)
 
 if __name__ == '__main__':
     host = '0.0.0.0'
