@@ -4,10 +4,11 @@ import logging
 import os
 
 import requests
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_cors import cross_origin, CORS
 from flask import request
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 from celery import Celery
 
 from factory_responses import FactoryResponse
@@ -18,6 +19,7 @@ mongo_host = os.getenv('MONGO_HOST', '0.0.0.0')
 mongo_port = os.getenv('MONGO_PORT', 27017)
 output_folder_download = Path('./temp/')
 
+PER_PAGE = 20
 
 def get_collection(host: str, port: int):
     connection = MongoClient(host, port)
@@ -28,9 +30,6 @@ def get_collection(host: str, port: int):
 
 # set up factory classes
 factory_responses = FactoryResponse()
-
-# set up  db connection
-news = get_collection(mongo_host, mongo_port)
 # set up celery
 celery = Celery('tasks', broker=redis_address)
 
@@ -41,17 +40,38 @@ app = Flask(__name__, static_folder="./dist/static", template_folder="./dist")
 cors = CORS(app, resources={r"/api/*": {"origins": '*'}})
 app.config['CORS_HEADER'] = 'Content-Type'
 
+def pagination(news, page: int, size: int):
+    paginated = []
+    for entry in news.find().skip((page-1)*size).limit(size):
+        entry["_id"] = str(entry["_id"])
+        paginated.append(entry)
+    return paginated
 
 @app.route('/api/news', methods=['GET'])
 @cross_origin(origin='*')
 def get_news():
+    page = request.args.get('page',1, type=int)
+    size = request.args.get('size',PER_PAGE, type=int)
+    # set up  db connection
     app.logger.info("Receiving get query")
-    return jsonify({'result': 'ok'})
+    news = get_collection(mongo_host, mongo_port)
+    return jsonify(pagination(news, page, size))
+
+
+@app.route('/api/news/<string:_id>', methods=['GET'])
+@cross_origin(origin='*')
+def get_one_news(_id: str):
+    news = get_collection(mongo_host, mongo_port)
+    jsonized_result = jsonify(news.find_one({"id":_id}))
+    return jsonized_result
 
 
 @app.route('/api/news', methods=['POST'])
 @cross_origin(origin='*')
 def post_news():
+    # set up  db connection
+    news = get_collection(mongo_host, mongo_port)
+
     app.logger.info("Receiving post query")
     content = request.json
 
@@ -75,11 +95,13 @@ def post_news():
 @celery.task
 def run_batch(_id: str, link: str, title: str, description: str):
         app.logger.info(f'Executing analysed batch task {str(link)}')
+        # set up  db connection
+        news = get_collection(mongo_host, mongo_port)
 
         # TODO ADD ML ALGORITHM
         data_sentiment = {'sentiment': 'unknown'}
         key = {'id': _id}
-        data = {'link': link, 'title': title, 'description': description, 'data_ml': data_sentiment}
+        data = {'id': _id, 'link': link, 'title': title, 'description': description, 'data_ml': data_sentiment}
         news.update(key, data, upsert=True)
         check_and_download_web(link, output_folder_download)
 
