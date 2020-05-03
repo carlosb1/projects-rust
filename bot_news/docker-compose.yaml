@@ -14,6 +14,10 @@ services:
        build: ./ml_endpoint
        ports:
            - 5002:5002
+       environment:
+           - REDIS_ADDRESS=redis://redis:6379/0
+           - MONGO_HOST=mongo_db
+           - MONGO_Port=27017
    mongo_db:
        image: mongo:latest
        ports:

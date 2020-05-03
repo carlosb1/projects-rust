@@ -1,12 +1,20 @@
 from datetime import datetime
+import logging
+import os
+
+import requests
 from flask import Flask, render_template, jsonify
 from flask_cors import cross_origin, CORS
-import requests
 from flask import request
-from factory_responses import FactoryResponse
 from pymongo import MongoClient
 from celery import Celery
-import logging
+
+from factory_responses import FactoryResponse
+
+
+redis_address = os.getenv('REDIS_ADDRESS','redis://0.0.0.0:6379/0')
+mongo_host = os.getenv('MONGO_HOST', '0.0.0.0')
+mongo_port = os.getenv('MONGO_PORT', 27017)
 
 
 def get_collection(host: str, port: int):
@@ -15,13 +23,17 @@ def get_collection(host: str, port: int):
     news = db['news']
     return news
 
-factory_responses = FactoryResponse()
-USED_LANGUAGE = 'es'
-CELERY_BROKER_ADDRESS = 'redis://0.0.0.0:6379/0'
 
-news = get_collection('localhost', 27017)
+# set up factory classes
+factory_responses = FactoryResponse()
+
+# set up  db connection
+news = get_collection(mongo_host, mongo_port)
+# set up celery
+celery = Celery('tasks', broker=redis_address)
+
+# set up flask
 app = Flask(__name__, static_folder="./dist/static", template_folder="./dist")
-celery = Celery('tasks', broker=CELERY_BROKER_ADDRESS)
 
 # Configure CORS feature
 cors = CORS(app, resources={r"/api/*": {"origins": '*'}})
