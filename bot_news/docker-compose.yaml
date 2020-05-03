@@ -14,5 +14,12 @@ services:
        build: ./ml_endpoint
        ports:
            - 5002:5002
-       
+   mongo_db:
+       image: mongo:latest
+       ports:
+           - 27017:27017
+   redis:
+       image: redis:latest
+       ports:
+           - 6379:6379
 

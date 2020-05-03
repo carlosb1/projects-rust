@@ -5,17 +5,23 @@ import requests
 from flask import request
 from factory_responses import FactoryResponse
 from pymongo import MongoClient
-# from celery import Celery
+from celery import Celery
 import logging
 
 
+def get_collection(host: str, port: int):
+    connection = MongoClient(host, port)
+    db = connection['db_news']
+    news = db['news']
+    return news
+
 factory_responses = FactoryResponse()
 USED_LANGUAGE = 'es'
-CELERY_BROKER_ADDRESS = 'redis://redis:6379/0'
+CELERY_BROKER_ADDRESS = 'redis://0.0.0.0:6379/0'
 
-# news = get_collection('localhost', 27017)
+news = get_collection('localhost', 27017)
 app = Flask(__name__, static_folder="./dist/static", template_folder="./dist")
-# celery = Celery('tasks', broker=CELERY_BROKER_ADDRESS)
+celery = Celery('tasks', broker=CELERY_BROKER_ADDRESS)
 
 # Configure CORS feature
 cors = CORS(app, resources={r"/api/*": {"origins": '*'}})
@@ -34,16 +40,25 @@ def get_news():
 def post_news():
     app.logger.info("Receiving post query")
     content = request.json
-    app.logger.info("-----------------")
-    app.logger.info(f'{str(content)}')
-    app.logger.info("-----------------")
+
+    if not content or type(content) is not list:
+        app.logger.info("Content has not correct format")
+        return factory_responses.new400()
+    for entry in content:
+        if type(entry) is not dict and not (all(elem in ['link', 'title', 'description']) for elem in entry):
+            app.logger.info(f'Content doesn include enough info {str(entry)}')
+            continue
+        app.logger.info("-----------------")
+        app.logger.info(f'{str(entry)}')
+        app.logger.info("-----------------")
+        run_batch.apply_async((entry['link'], entry['title'], entry['description']))
 
     list_ids = []
     return factory_responses.new201({'ids': list_ids})
 
-# @celery.task
-# def run_batch(database_id, url):
-#        logger.info("Executing analysed batch task")
+@celery.task
+def run_batch(link: str, title: str, description: str):
+        app.logger.info(f'Executing analysed batch task {str(link)}')
 
 
 if __name__ == '__main__':
@@ -55,10 +70,10 @@ if __name__ == '__main__':
     app.logger.handlers.extend(gunicorn_error_logger.handlers)
     app.logger.setLevel(logging.DEBUG)
 
-#    celery_argvs = ['worker', '--loglevel=DEBUG']
-#    import threading
-#    celery_thread = threading.Thread(target=celery.worker_main,
-#                                      args=[celery_argvs])
-#    celery_thread.start()
+    celery_argvs = ['worker', '--loglevel=DEBUG']
+    import threading
+    celery_thread = threading.Thread(target=celery.worker_main,
+                                       args=[celery_argvs])
+    celery_thread.start()
     app.logger.info("Running API REST")
     app.run(host=host, port=port, debug=debug)
