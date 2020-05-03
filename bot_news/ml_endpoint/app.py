@@ -48,7 +48,7 @@ def pagination(news, page: int, size: int):
     return paginated
 
 @app.route('/api/news', methods=['GET'])
-@cross_origin(origin='*')
+@cross_origin()
 def get_news():
     page = request.args.get('page',1, type=int)
     size = request.args.get('size',PER_PAGE, type=int)
@@ -59,15 +59,20 @@ def get_news():
 
 
 @app.route('/api/news/<string:_id>', methods=['GET'])
-@cross_origin(origin='*')
+@cross_origin()
 def get_one_news(_id: str):
     news = get_collection(mongo_host, mongo_port)
-    jsonized_result = jsonify(news.find_one({"id":_id}))
+    found_one = news.find_one({"id":_id})
+    if not found_one:
+        return jsonify({})
+    if '_id' in found_one:
+        del found_one['_id']
+    jsonized_result = jsonify(found_one)
     return jsonized_result
 
 
 @app.route('/api/news', methods=['POST'])
-@cross_origin(origin='*')
+@cross_origin()
 def post_news():
     # set up  db connection
     news = get_collection(mongo_host, mongo_port)
