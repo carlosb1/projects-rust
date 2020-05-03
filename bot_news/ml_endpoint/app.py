@@ -58,21 +58,29 @@ def post_news():
     if not content or type(content) is not list:
         app.logger.info("Content has not correct format")
         return factory_responses.new400()
+
+    list_ids = []
     for entry in content:
-        if type(entry) is not dict and not (all(elem in ['link', 'title', 'description']) for elem in entry):
+        if type(entry) is not dict and not (all(elem in ['id', 'link', 'title', 'description']) for elem in entry):
             app.logger.info(f'Content doesn include enough info {str(entry)}')
             continue
         app.logger.info("-----------------")
         app.logger.info(f'{str(entry)}')
         app.logger.info("-----------------")
-        run_batch.apply_async((entry['link'], entry['title'], entry['description']))
+        run_batch.apply_async((entry['id'], entry['link'], entry['title'], entry['description']))
+        list_ids.append(entry['id'])
 
-    list_ids = []
     return factory_responses.new201({'ids': list_ids})
 
 @celery.task
-def run_batch(link: str, title: str, description: str):
+def run_batch(_id: str, link: str, title: str, description: str):
         app.logger.info(f'Executing analysed batch task {str(link)}')
+
+        # TODO ADD ML ALGORITHM
+        data_sentiment = {'sentiment': 'unknown'}
+        key = {'id': _id}
+        data = {'link': link, 'title': title, 'description': description, 'data_ml': data_sentiment}
+        news.update(key, data, upsert=True)
         check_and_download_web(link, output_folder_download)
 
 if __name__ == '__main__':
