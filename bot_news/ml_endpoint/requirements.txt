@@ -29,3 +29,5 @@ gunicorn == 19.9.0
 setuptools == 40.6.3
 
 redis == 3.2.1
+
+transfomers == 2.9.0

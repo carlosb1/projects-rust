@@ -13,6 +13,7 @@ from celery import Celery
 
 from factory_responses import FactoryResponse
 from utils import check_and_download_web
+from ml import MyBertTransformerSentimentAnalysis
 
 redis_address = os.getenv('REDIS_ADDRESS', 'redis://0.0.0.0:6379/0')
 mongo_host = os.getenv('MONGO_HOST', '0.0.0.0')
@@ -27,6 +28,7 @@ def get_collection(host: str, port: int):
     news = db['news']
     return news
 
+ml_bert_analyser = MyBertTransformerSentimentAnalysis()
 
 # set up factory classes
 factory_responses = FactoryResponse()
@@ -104,7 +106,7 @@ def run_batch(_id: str, link: str, title: str, description: str):
         news = get_collection(mongo_host, mongo_port)
 
         # TODO ADD ML ALGORITHM
-        data_sentiment = {'sentiment': 'unknown'}
+        data_sentiment = ml_bert_analyser.run(description)
         key = {'id': _id}
         data = {'id': _id, 'link': link, 'title': title, 'description': description, 'data_ml': data_sentiment}
         news.update(key, data, upsert=True)

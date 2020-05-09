@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="ml-news-carlosb",
+    name="mlnews",
     version="0.0.1",
     author="Carlos B",
     author_email="",
