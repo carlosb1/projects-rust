@@ -19,5 +19,6 @@ setuptools.setup(
     ],
     python_requires='>=3.7',
     install_requires=[
+        "transformers==2.9.0"
     ]
 )
