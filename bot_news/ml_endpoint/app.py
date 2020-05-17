@@ -6,7 +6,6 @@ import os
 import requests
 from flask import Flask, render_template, jsonify, request
 from flask_cors import cross_origin, CORS
-from flask import request
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from celery import Celery
@@ -17,7 +16,7 @@ from ml import MyBertTransformerSentimentAnalysis
 
 redis_address = os.getenv('REDIS_ADDRESS', 'redis://0.0.0.0:6379/0')
 mongo_host = os.getenv('MONGO_HOST', '0.0.0.0')
-mongo_port = os.getenv('MONGO_PORT', 27017)
+mongo_port = int(os.getenv('MONGO_PORT', 27017))
 output_folder_download = Path('./temp/')
 
 PER_PAGE = 20
@@ -83,6 +82,9 @@ def post_news():
     # set up  db connection
     app.logger.info("Receiving post query")
     content = request.json
+
+    app.logger.info(str(content))
+    print(str(content))
 
     if not content or type(content) is not list:
         app.logger.info("Content has not correct format")

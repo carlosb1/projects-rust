@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hasher};
 
-const ADDRESS_SERVER_SEARCHER: &str = "http://127.0.0.1:7700/indexes/news/documents";
-const ADDRESS_SERVER_ML: &str = "http://127.0.0.1:5002/api/news";
+const ADDRESS_SERVER_SEARCHER: &str = "http://searchengine:7700/indexes/news/documents";
+const ADDRESS_SERVER_ML: &str = "http://ml_endpoint:5002/api/news";
 
 #[tokio::main]
 async fn main(){

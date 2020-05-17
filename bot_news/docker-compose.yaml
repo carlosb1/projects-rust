@@ -9,7 +9,6 @@ services:
         build: ./MeiliSearch
         ports:
            - 7700:7700
-
    ml_endpoint:
        build: ./ml_endpoint
        ports:
