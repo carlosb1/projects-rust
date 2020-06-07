@@ -1,10 +1,9 @@
-from datetime import datetime
+"""REST Endpoint class."""
 from pathlib import Path
 import logging
 import os
 
-import requests
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, jsonify, request
 from flask_cors import cross_origin, CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -23,6 +22,7 @@ PER_PAGE = 20
 
 
 def get_collection(host: str, port: int):
+    """Class to save repository."""
     connection = MongoClient(host, port)
     db = connection['db_news']
     news = db['news']
@@ -45,6 +45,7 @@ app.config['CORS_HEADER'] = 'Content-Type'
 
 
 def pagination(news, page: int, size: int):
+    """Pagination function."""
     paginated = []
     for entry in news.find().skip((page - 1) * size).limit(size):
         entry["_id"] = str(entry["_id"])
@@ -55,6 +56,7 @@ def pagination(news, page: int, size: int):
 @app.route('/api/news', methods=['GET'])
 @cross_origin()
 def get_news():
+    """Get endpoint."""
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', PER_PAGE, type=int)
     # set up  db connection
@@ -66,6 +68,7 @@ def get_news():
 @app.route('/api/news/<string:_id>', methods=['GET'])
 @cross_origin()
 def get_one_news(_id: str):
+    """Get endpoint for one resource."""
     news = get_collection(mongo_host, mongo_port)
     found_one = news.find_one({"id": _id})
     if not found_one:
@@ -79,6 +82,7 @@ def get_one_news(_id: str):
 @app.route('/api/news', methods=['POST'])
 @cross_origin()
 def post_news():
+    """Post Endpoint."""
     # set up  db connection
     app.logger.info("Receiving post query")
     content = request.json
@@ -109,6 +113,7 @@ def post_news():
 
 @celery.task
 def run_batch(_id: str, link: str, title: str, description: str):
+    """Batch task to check news."""
     app.logger.info(f'Executing analysed batch task {str(link)}')
     # set up  db connection
     news = get_collection(mongo_host, mongo_port)
