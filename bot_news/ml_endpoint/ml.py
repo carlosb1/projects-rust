@@ -13,6 +13,7 @@ class MyBertTransformerSentimentAnalysis():
         model = AutoModelForSequenceClassification.from_pretrained(name_model)
         self.pipe = TextClassificationPipeline(model=model, tokenizer=tokenizer)
 
+
     def run(self, input_data: str) -> dict:
         output = self.pipe(input_data)
         return output
