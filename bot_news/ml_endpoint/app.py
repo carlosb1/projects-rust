@@ -97,8 +97,8 @@ def post_news():
     list_ids = []
     for entry in content:
         if type(entry) is not dict and not (all(
-                elem in ['id', 'link', 'title', 'description'])
-                                            for elem in entry):
+            elem in ['id', 'link', 'title', 'description'])
+                for elem in entry):
             app.logger.info(f'Content doesn include enough info {str(entry)}')
             continue
         app.logger.info("-----------------")
