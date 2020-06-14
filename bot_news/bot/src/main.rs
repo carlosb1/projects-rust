@@ -19,6 +19,8 @@ async fn main() {
                     .unwrap_or("http://127.0.0.1:7700/indexes/news/documents".to_string());
                 let address_server_ml: String = env::var("ADDRESS_SERVER_ML")
                     .unwrap_or("http:/127.0.0.1:5002/api/news".to_string());
+                log::info!("Search server in {}", address_server_searcher);
+                log::info!("ML server in {}", address_server_ml);
                 match message.update.text() {
                     Some(text) => {
                         if is_link(text) {
