@@ -1,15 +1,27 @@
 version: '3'
 services:
-   bot:
-        build: ./bot
-        working_dir: /bot
-        env_file:
-                - .env
-   searchengine:
+  nginx:
+   container_name: cargo-nginx
+   image: nginx:1.13
+   restart: always
+   ports:
+   - 80:80
+   - 443:443
+   volumes:
+   - ./nginx/conf.d:/etc/nginx/conf.d
+   depends_on:
+   - ml_endpoint
+   - searchengine
+  bot:
+   build: ./bot
+   working_dir: /bot
+   env_file:
+         - .env
+  searchengine:
         build: ./MeiliSearch
         ports:
            - 7700:7700
-   ml_endpoint:
+  ml_endpoint:
        build: ./ml_endpoint
        ports:
            - 5002:5002
@@ -17,12 +29,11 @@ services:
            - REDIS_ADDRESS=redis://redis:6379/0
            - MONGO_HOST=mongo_db
            - MONGO_PORT=27017
-   mongo_db:
+  mongo_db:
        image: mongo:latest
        ports:
            - 27017:27017
-   redis:
+  redis:
        image: redis:latest
        ports:
            - 6379:6379
-
