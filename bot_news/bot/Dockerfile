@@ -1,10 +1,17 @@
-from rust:1.43
-# RUN rustup update
-RUN rustup default nightly
-COPY . .
-# RUN cargo clean
-RUN cargo build
+from rust:1.44 as build
 
-# MEILISEARCH_ADDRESS="127.0.0.1:7700"
-# RUN curl -i -X POST "$MEILISEARCH_ADDRESS/indexes" --data "{ \"name\": \"News\", \"uid\":\"news\" }"
-CMD cargo run --release
+RUN USER=root cargo new --bin bot
+WORKDIR /bot
+copy ./Cargo.lock ./Cargo.lock
+copy ./Cargo.toml ./Cargo.toml
+
+RUN cargo build --release
+RUN rm src/*.rs
+COPY ./src ./src
+
+RUN rm ./target/release/deps/bot_news*
+RUN cargo build --release
+
+FROM rust:1.44
+COPY --from=build /bot/target/release/bot_news .
+CMD ["./bot_news"]
