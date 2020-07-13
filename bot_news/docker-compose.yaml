@@ -20,6 +20,8 @@ services:
         image: getmeili/meilisearch
         ports:
            - 7700:7700
+        volumes:
+           - ./data.ms:/data.ms
   ml_endpoint:
        build: ./ml_endpoint
        ports:
