@@ -1,5 +1,4 @@
-from rust:1.44 as build
-
+from rust:1.44 as build_bot
 RUN USER=root cargo new --bin bot
 WORKDIR /bot
 copy ./Cargo.lock ./Cargo.lock
@@ -13,5 +12,5 @@ RUN rm ./target/release/deps/bot_news*
 RUN cargo build --release
 
 FROM rust:1.44
-COPY --from=build /bot/target/release/bot_news .
+COPY --from=build_bot /bot/target/release/bot_news .
 CMD ["./bot_news"]

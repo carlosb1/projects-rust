@@ -28,6 +28,12 @@ services:
            - 5002:5002
        env_file:
            - .env
+  web_app:
+       build: ./web_app
+       ports:
+           - 8000:8000
+       env_file:
+           - .env
 
   mongo_db:
        image: mongo:latest
