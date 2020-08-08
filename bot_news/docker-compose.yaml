@@ -11,6 +11,7 @@ services:
    depends_on:
    - ml_endpoint
    - searchengine
+   - web_app
   bot:
         build: ./bot
         env_file:
@@ -27,6 +28,9 @@ services:
            - 5002:5002
        env_file:
            - .env
+       depends_on:
+       - mongo_db
+       - redis
   web_app:
        build: ./web_app
        ports:
