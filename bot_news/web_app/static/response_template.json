@@ -1,0 +1,17 @@
+response_data = `
+[
+  {
+    "_id": "5f2f2e59272c0b40fd63c314", 
+    "data_ml": [
+      {
+        "label": "4 stars", 
+        "score": 0.28020092844963074
+      }
+    ], 
+    "description": "El Gobierno aprobar\u00e1 en los pr\u00f3ximos d\u00edas el uso obligatorio de mascarillas en lugares p\u00fablicos, seg\u00fan ha explicado la ministra de Hacienda y portavoz del Gobierno, Mar\u00eda Jes\u00fas Montero, en rueda de...", 
+    "id": "13116348884871478359", 
+    "link": "https://www.lavanguardia.com/vida/20200517/481215986115/coronavirus-gobierno-aprobara-uso-obligatorio-mascarilla-lugares-publicos.html", 
+    "title": "El Gobierno aprobar\u00e1 el uso obligatorio de mascarillas en lugares p\u00fablicos"
+  }
+]
+`

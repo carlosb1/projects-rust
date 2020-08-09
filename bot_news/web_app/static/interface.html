@@ -89,14 +89,14 @@
       <div class="hero-body">
         <div class="container">
           <h1 class="title">
-            Welcome to MeiliSearch
+            Ranking news
           </h1>
           <h2 class="subtitle">
             This dashboard will help you check the search results with ease.
           </h2>
 
+          <!--
           <div class="field">
-            <!-- API Key -->
             <div class="field">
               <div class="control">
                 <input id="apiKey" class="input is-small" type="password" placeholder="API key (optional)">
@@ -104,6 +104,7 @@
               </div>
             </div>
           </div>
+        -->
 
         </div>
       </div>
@@ -157,6 +158,9 @@
       </ol>
     </section>
   </body>
+  <script type="text/javascript" src="/static/meilisearch_template.json"></script>
+  <script type="text/javascript" src="/static/response_template.json"></script>
+  <script type="text/javascript" src="/static/metainfo_template.json"></script>
 
   <script>
     function sanitizeHTMLEntities(str) {
@@ -169,7 +173,8 @@
         return str;
     }
 
-    function httpGet(theUrl, apiKey) {
+/*
+    function httpGetMetaInfo(theUrl, apiKey) {
         var xmlHttp = new XMLHttpRequest();
         xmlHttp.open("GET", theUrl, false); // false for synchronous request
         if (apiKey) {
@@ -178,10 +183,38 @@
         xmlHttp.send(null);
         return xmlHttp.responseText;
     }
+    */
+
+    function httpGetMetaInfo(theUrl, apiKey) {
+      return metainfo_data;
+    }
+/*
+    function httpGetData(theUrl) {
+      let lastRequest = undefined;
+
+      if (lastRequest) { lastRequest.abort() }
+      lastRequest = new XMLHttpRequest();
+      lastRequest.open("GET", theUrl, true);
+
+      if (localStorage.getItem('apiKey')) {
+        lastRequest.setRequestHeader("x-Meili-API-Key", localStorage.getItem('apiKey'));
+      }
+      return lastRequest;
+    }*/
+
+    function httpGetData(theUrl) {
+      lastRequest = Object();
+      lastRequest.readyState = 4;
+      lastRequest.status = 200;
+      lastRequest.responseText = meilisearch_data;
+      lastRequest.send = function (valu) { this.onload(null);};
+      return lastRequest;
+
+    }
 
     function refreshIndexList() {
         // TODO we must not block here
-        let result = JSON.parse(httpGet(`${baseUrl}/indexes`, localStorage.getItem('apiKey')));
+        let result = JSON.parse(httpGetMetaInfo(`${baseUrl}/indexes`, localStorage.getItem('apiKey')));
 
         if (!Array.isArray(result)) { return }
 
@@ -196,23 +229,14 @@
         }
     }
 
-    let lastRequest = undefined;
-
     function triggerSearch() {
         var e = document.getElementById("index");
         if (e.selectedIndex == -1) { return }
         var index = e.options[e.selectedIndex].value;
 
+
         let theUrl = `${baseUrl}/indexes/${index}/search?q=${search.value}&attributesToHighlight=*`;
-
-        if (lastRequest) { lastRequest.abort() }
-        lastRequest = new XMLHttpRequest();
-
-        lastRequest.open("GET", theUrl, true);
-
-        if (localStorage.getItem('apiKey')) {
-          lastRequest.setRequestHeader("x-Meili-API-Key", localStorage.getItem('apiKey'));
-        }
+        lastRequest = httpGetData(theUrl);
 
         lastRequest.onload = function (e) {
             if (lastRequest.readyState === 4 && lastRequest.status === 200) {
@@ -285,16 +309,17 @@
         };
         lastRequest.send(null);
     }
-
+/*
     if (!apiKey.value) {
         apiKey.value = localStorage.getItem('apiKey');
     }
+    
 
     apiKey.addEventListener('input', function(e) {
         localStorage.setItem('apiKey', apiKey.value);
         refreshIndexList();
     }, false);
-
+*/
     // let baseUrl = window.location.origin;
     let baseUrl = "http://0.0.0.0:7700";
     refreshIndexList();
