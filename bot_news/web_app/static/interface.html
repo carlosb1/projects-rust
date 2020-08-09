@@ -92,7 +92,7 @@
             Ranking news
           </h1>
           <h2 class="subtitle">
-            This dashboard will help you check the search results with ease.
+              This project pretends to explain 
           </h2>
 
           <!--
@@ -158,6 +158,7 @@
       </ol>
     </section>
   </body>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script type="text/javascript" src="/static/meilisearch_template.json"></script>
   <script type="text/javascript" src="/static/response_template.json"></script>
   <script type="text/javascript" src="/static/metainfo_template.json"></script>
@@ -286,7 +287,18 @@
                         field.appendChild(content);
 
                         ol.appendChild(field);
-                    }
+                    };
+
+                    /**********************************/
+                    // Hardcoded buttons
+                    let doc = new DOMParser().parseFromString('<div class="buttons has-addons">'+
+                    '<span class="button">Yes</span>'+
+                    '<span class="button">Maybe</span>'+
+                    '<span class="button">No</span>'+
+                    '</div>', 'text/html').body.firstChild;
+                    
+                    ol.appendChild(doc);
+                   /**********************************/
 
                     elem.appendChild(ol);
 
