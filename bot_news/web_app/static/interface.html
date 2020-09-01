@@ -229,6 +229,9 @@
             select.appendChild(option);
         }
     }
+    function isFake(id, fakeValue) {
+        console.log(id);
+    }
 
     function triggerSearch() {
         var e = document.getElementById("index");
@@ -260,6 +263,8 @@
                     const ol = document.createElement('ol');
                     let image = undefined;
 
+
+                    let id = "-1";
                     for (const prop in element) {
                         // Check if property is an image url link.
                         if (typeof result[prop] === 'string') {
@@ -283,6 +288,10 @@
                           content.innerHTML = element[prop];
                         }
 
+                        if (prop == 'ID') {
+                          id = element[prop];
+                        }
+
                         field.appendChild(attribute);
                         field.appendChild(content);
 
@@ -292,9 +301,9 @@
                     /**********************************/
                     // Hardcoded buttons
                     let doc = new DOMParser().parseFromString('<div class="buttons has-addons">'+
-                    '<span class="button">Yes</span>'+
-                    '<span class="button">Maybe</span>'+
-                    '<span class="button">No</span>'+
+                    '<span class="button" onclick="isFake('+id+', "yes")">Yes</span>'+
+                    '<span class="button" onclick="isFake('+id+', "maybe")">Maybe</span>'+
+                    '<span class="button" onclick="isFake('+id+', "no")">No</span>'+
                     '</div>', 'text/html').body.firstChild;
                     
                     ol.appendChild(doc);
