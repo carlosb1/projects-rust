@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/bulma.min.css">
+
+
     <title>MeiliSearch</title>
     <style>
       em {
@@ -80,7 +82,8 @@
         padding-left: 10px;
         color: rgba(0,0,0,.9);
         overflow-wrap: break-word;
-      }
+      } 
+      
     </style>
   </head>
   <body>
@@ -92,7 +95,7 @@
             Ranking news
           </h1>
           <h2 class="subtitle">
-              This project pretends to explain 
+              This project pretends to explain
           </h2>
 
           <!--
@@ -156,13 +159,15 @@
       <ol id="results" class="content">
         <!-- documents matching resquests -->
       </ol>
+
     </section>
   </body>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script type="text/javascript" src="/static/jquery.min.js"></script>
   <script type="text/javascript" src="/static/meilisearch_template.json"></script>
   <script type="text/javascript" src="/static/response_template.json"></script>
   <script type="text/javascript" src="/static/metainfo_template.json"></script>
 
+  
   <script>
     function sanitizeHTMLEntities(str) {
         if (str && typeof str === 'string') {
@@ -173,6 +178,7 @@
         }
         return str;
     }
+
 
 /*
     function httpGetMetaInfo(theUrl, apiKey) {
@@ -185,7 +191,7 @@
         return xmlHttp.responseText;
     }
     */
-
+    // TODO MOCKED INFO!!
     function httpGetMetaInfo(theUrl, apiKey) {
       return metainfo_data;
     }
@@ -229,8 +235,8 @@
             select.appendChild(option);
         }
     }
-    function isFake(id, fakeValue) {
-        console.log(id);
+    function isFake(id, type_fake) {
+        console.log("id: " + id + " fake: "+type_fake);
     }
 
     function triggerSearch() {
@@ -287,8 +293,8 @@
                         } else {
                           content.innerHTML = element[prop];
                         }
-
-                        if (prop == 'ID') {
+                        // capture event id
+                        if (prop == 'id') {
                           id = element[prop];
                         }
 
@@ -300,15 +306,18 @@
 
                     /**********************************/
                     // Hardcoded buttons
-                    let doc = new DOMParser().parseFromString('<div class="buttons has-addons">'+
-                    '<span class="button" onclick="isFake('+id+', "yes")">Yes</span>'+
-                    '<span class="button" onclick="isFake('+id+', "maybe")">Maybe</span>'+
-                    '<span class="button" onclick="isFake('+id+', "no")">No</span>'+
-                    '</div>', 'text/html').body.firstChild;
+                    let doc = new DOMParser().parseFromString("<div class='buttons has-addons'>"+
+                      "<span class='button' onclick='isFake("+id+", 0)'>Yes</span>"+
+                      "<span class='button' onclick='isFake("+id+", 1)'>Maybe</span>"+
+                      "<span class='button' onclick='isFake("+id+", 2)'>No</span>"+
+                      "</div>", 'text/html').body.firstChild;
                     
                     ol.appendChild(doc);
                    /**********************************/
-
+                   
+                   /**********************************/
+//                   <input type="text" value="html,input,tag" data-role="tagsinput"></input>
+                    
                     elem.appendChild(ol);
 
                     if (image != undefined) {
@@ -346,7 +355,7 @@
     refreshIndexList();
 
     search.oninput = triggerSearch;
-    select.onchange = triggerSearch;
+    search.onchange = triggerSearch;
 
     triggerSearch();
   </script>
