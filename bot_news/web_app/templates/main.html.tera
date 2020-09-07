@@ -12,8 +12,6 @@
         {% block css %}<link rel="stylesheet" href="/static/css/custom.css">{% endblock css %}
     </head>
     <body>
-    <main role="main">
-        {% block main %}{% endblock main %}
-    </main>
+     {{ name  }}
     </body>
 </html>

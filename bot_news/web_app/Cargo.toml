@@ -19,7 +19,7 @@ default-features = false
 features = ["tera_templates", "json"]
 
 # template and markdown
-# tera = "0.11.20"
+tera = "0.11.20"
 
 
 [[bin]]
