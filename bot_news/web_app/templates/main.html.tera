@@ -12,6 +12,6 @@
         {% block css %}<link rel="stylesheet" href="/static/css/custom.css">{% endblock css %}
     </head>
     <body>
-     {{ name  }}
+     my name is {{ name  }}
     </body>
 </html>

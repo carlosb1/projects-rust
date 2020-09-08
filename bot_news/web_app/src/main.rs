@@ -18,7 +18,12 @@ fn rocket() -> rocket::Rocket {
         .attach(Template::fairing())
         .mount(
             "/",
-            routes![static_files::file, get::index, get::single_page_app],
+            routes![
+                static_files::file,
+                get::index,
+                get::single_page_app,
+                get::main,
+            ],
         )
         .register(catchers![errors::not_found])
 }
