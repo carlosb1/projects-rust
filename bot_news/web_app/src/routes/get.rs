@@ -13,8 +13,9 @@ pub enum ApiError {
 }
 
 #[get("/index")]
-pub fn index() -> io::Result<NamedFile> {
-    NamedFile::open("static/index.html")
+pub fn index() -> Template {
+    let context: HashMap<&str, &str> = [("name", "Carlos")].iter().cloned().collect();
+    Template::render("main", &context)
 }
 
 #[get("/share")]
