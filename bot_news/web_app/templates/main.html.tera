@@ -7,13 +7,25 @@
         <meta http-equiv=X-UA-Compatible content="ie=edge">
         <meta name=author content=steadylearner>
         <title>Rust example recommendations</title>
-	<link rel="stylesheet" href="/static/node_modules/bootstrap/dist/css/bootstrap.min.css">
+      	<link rel="stylesheet" href="/static/node_modules/bootstrap/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="/static/main.css">
         <link rel="stylesheet" href="/static/node_modules/font-awesome/css/font-awesome.min.css">
-	<script src="/static/node_modules/jquery/dist/jquery.min.js"> </script>
-	<script src="/static/node_modules/bootstrap/dist/js/bootstrap.min.js">  </script>
+      	<script src="/static/node_modules/jquery/dist/jquery.min.js"> </script>
+       	<script src="/static/node_modules/bootstrap/dist/js/bootstrap.min.js">  </script>
+       	<script src="/static/node_modules/bootstrap-tagsinput/dist/bootstrap-tagsinput.min.js">  </script>
+        <script src="/static/node_modules/bootstrap-tagsinput/dist/bootstrap-tagsinput.css">  </script>
         <title>{% block title %} News Website {% endblock title %}</title>
         {% block css %}<link rel="stylesheet" href="/static/css/custom.css">{% endblock css %}
+            <style>
+      .tag.label.label-info {
+        color: #85144B ;
+        background-color: #AAAAAA ;
+        font-weight: bold;
+
+      };
+
+    </style>
+
     </head>
     <body>
 <div>
@@ -32,6 +44,16 @@
     -->
       </ul>
         <div class="collapse navbar-collapse justify-content-end" id="navbarCollapse">
+  <form class="form-inline">
+    <div class="input-group">
+      <div class="input-group-prepend">
+        <span class="input-group-text" id="basic-addon1">@</span>
+      </div>
+      <input type="text" class="form-control" placeholder="Username" aria-label="Username" aria-describedby="basic-addon1">
+       <input type="password" class="form-control" placeholder="Password" aria-label="Password" aria-describedby="basic-addon1">
+    </div>
+  </form>
+
         <ul class="navbar-nav">
           <li class="nav-item" ><a href="/login"  class="nav-link"  ><i class="fa fa-user fa-2x" aria-hidden="true"></i></a></li>
         </ul>
@@ -41,18 +63,19 @@
     <div class="container">
       <h1 class="display-3"> News </h1>
       
-      <div class="list-group list-group-flush border rounded">
+      <div class="list-group list-group-flush border rounded">      
               <a
                   class="list-group-item list-group-item-action"
                   data-toggle="collapse" href="#collapseComment" role="button" aria-expanded="false" aria-controls="collapseComment">
                   <strong class="mr-2">id</strong>
                   <span>name </span>
-                  <small class="text-muted">internal id</small>
-                               <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
-                    <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true"></i> </button>
-                    <button type="button" class="btn btn-success btn-sm">Approved</button>
-                    <button type="button" class="btn btn-danger  btn-sm">Fake</button>
-                </div>
+                  <small class="text-muted">internal id</small>                     
+                      <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
+                      <input class="input-sm" type="text" value="" data-role="tagsinput" />
+                      <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true"></i> </button>
+                      <button type="button" class="btn btn-success btn-sm">Approved</button>
+                      <button type="button" class="btn btn-danger  btn-sm">Fake</button>
+                    </div>
               </a>
               <div class="collapse" id="collapseComment">
               <div class="card card-body">
