@@ -9,11 +9,12 @@
         <title>Rust example recommendations</title>
       	<link rel="stylesheet" href="/static/node_modules/bootstrap/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="/static/node_modules/font-awesome/css/font-awesome.min.css">
+      	<scriptsrc="/static/node_modules/axios/dist/axios.min.js"> </script>
       	<script src="/static/node_modules/jquery/dist/jquery.min.js"> </script>
        	<script src="/static/node_modules/bootstrap/dist/js/bootstrap.min.js">  </script>
        	<script src="/static/node_modules/bootstrap-tagsinput/dist/bootstrap-tagsinput.min.js">  </script>
         <script src="/static/node_modules/bootstrap-tagsinput/dist/bootstrap-tagsinput.css">  </script>
-    	<script type="text/javascript" src="/static/main.js"></script>
+    	<script type="module" src="/static/main.js"></script>
         <title>{% block title %} News Website {% endblock title %}</title>
         {% block css %}<link rel="stylesheet" href="/static/css/custom.css">{% endblock css %}
             <style>
