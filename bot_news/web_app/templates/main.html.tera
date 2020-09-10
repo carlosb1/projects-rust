@@ -66,15 +66,15 @@
       <div class="list-group list-group-flush border rounded">
               <a
                   class="list-group-item list-group-item-action"
-                  data-toggle="collapse" href="#collapseComment" role="button" aria-expanded="false" aria-controls="collapseComment">
-                  <strong class="mr-2">id</strong>
+                  >
+                  <strong class="mr-2" data-toggle="collapse" href="#collapseComment" role="button" aria-expanded="false" aria-controls="collapseComment">id</strong>
                   <span>name </span>
                   <small class="text-muted">internal id</small>
                       <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
                       <input class="input-sm" type="text" value="" data-role="tagsinput" />
-                      <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true"></i> </button>
-                      <button type="button" class="btn btn-success btn-sm">Approved</button>
-                      <button type="button" class="btn btn-danger  btn-sm">Fake</button>
+                      <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('1','2')"></i> </button>
+                      <button type="button" class="btn btn-success btn-sm" onclick="approve('1','2')">Approved</button>
+                      <button type="button" class="btn btn-danger  btn-sm" onclick="fake('1', '2')">Fake</button>
                     </div>
               </a>
               <div class="collapse" id="collapseComment">
@@ -101,7 +101,7 @@
           <p>Praesent molestie ante nec metus convallis aliquam. Ut aliquam tincidunt mollis. Maecenas et ex sit amet est vehicula ultrices sed sit amet elit. Suspendisse potenti. Aenean et quam ut purus convallis porttitor. Mauris porttitor pretium elementum. Duis blandit elit tincidunt ipsum ultricies, ut faucibus lorem facilisis. Proin ipsum turpis, pharetra in lorem ac, porta ullamcorper velit. Proin gravida odio eget elit ultricies sodales. Vivamus vel tincidunt ligula. Proin pulvinar pellentesque velit eget luctus. Aliquam vitae enim ut purus vestibulum sollicitudin sit amet eget lacus. Nunc tempus fringilla tincidunt. </p>
           </div>
       </div>
-      <button class="btn  btn-outline-info float-left m-2">Send</button>
+      <button class="btn  btn-outline-info float-left m-2" onclick="new_comment("comment1')">Send</button>
     </form>
      </div>
                 </div>
