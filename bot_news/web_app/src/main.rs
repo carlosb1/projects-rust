@@ -23,6 +23,8 @@ fn rocket() -> rocket::Rocket {
                 get::index,
                 get::single_page_app,
                 get::main,
+                get::point_fake,
+                get::new_comment,
             ],
         )
         .register(catchers![errors::not_found])
