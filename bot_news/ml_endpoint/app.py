@@ -111,6 +111,25 @@ def post_news():
     return factory_responses.new201({'ids': list_ids})
 
 
+@app.route('/api/news/<idnew>/fake/<iduser>', methods=['POST'])
+def new_fake(idnew: str, iduser: str):
+    """Select as fake new."""
+    app.logger.info(f'Selecting fake new with id {idnew} with user {iduser}')
+
+
+@app.route('/api/news/<idnew>/like/<iduser>', methods=['POST'])
+def new_like(idnew: str, iduser: str):
+    """Like new."""
+    app.logger.info(f'Selecting like new with id {idnew} with user {iduser}')
+
+
+@app.route('/api/news/<idnew>/approve/<iduser>', methods=['POST'])
+def new_appoved(idnew: str, iduser: str):
+    """Approved new."""
+    app.logger.info(
+        f'Selecting approved  new with id {idnew} with user {iduser}')
+
+
 @celery.task
 def run_batch(_id: str, link: str, title: str, description: str):
     """Batch task to check news."""
