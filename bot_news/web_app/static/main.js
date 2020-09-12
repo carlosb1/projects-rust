@@ -1,28 +1,36 @@
-import axios from 'axios';
 
-const API_URL = 'http://127.0.0.1:8000';
 
-export function new_comment(comment) {
+ function new_comment(articleid, comment) {
 	console.log('Adding a new comment: ' + comment);
+	var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+         if (this.readyState == 4 && this.status == 200) {
+             alert(this.responseText);
+         }
+    };
+    xhttp.open("POST","/new_comment/"+articleid, true);
+    xhttp.setRequestHeader("Content-type", "application/json");
+    xhttp.send("Your JSON Data Here");
 }
 
-export function like(userid, articleid) {
+ function like(userid, articleid) {
 	console.log('User id:'+userid+" article:"+articleid);
 }
 
-export function approve(userid, articleid) {
+ function approve(userid, articleid) {
 	console.log('approve!');
 }
 
-export function fake(userid, articleid)  {
+ function fake(userid, articleid)  {
 	console.log('faked');
-	axios.put('/fake',{
-		'id_user': '1',
-		'id_article': '2'
-	}).then(function (response) {
-		console.log(response);
-	}).catch(function(error) {
-		console.log(error);
-	});
+	var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+         if (this.readyState == 4 && this.status == 200) {
+             alert(this.responseText);
+         }
+    };
+    xhttp.open("POST","/fake/"+articleid, true);
+    xhttp.setRequestHeader("Content-type", "application/json");
+    xhttp.send("Your JSON Data Here");
 }
 

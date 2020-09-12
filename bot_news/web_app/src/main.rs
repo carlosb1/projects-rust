@@ -8,7 +8,7 @@ extern crate serde_json;
 extern crate tera;
 
 mod routes;
-use crate::routes::{errors, get, static_files};
+use crate::routes::{errors, static_files, user};
 
 // tera
 use rocket_contrib::templates::Template;
@@ -20,11 +20,9 @@ fn rocket() -> rocket::Rocket {
             "/",
             routes![
                 static_files::file,
-                get::index,
-                get::single_page_app,
-                get::main,
-                get::point_fake,
-                get::new_comment,
+                user::index,
+                user::single_page_app,
+                user::main,
             ],
         )
         .register(catchers![errors::not_found])

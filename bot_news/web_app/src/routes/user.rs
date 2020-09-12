@@ -33,22 +33,7 @@ pub fn main() -> Template {
     Template::render("main", &context)
 }
 
-#[post("/<userid>/fake/<articleid>", format = "application/json")]
-pub fn point_fake(userid: String, articleid: String) -> status::Accepted<String> {
-    status::Accepted(Some("{'result':'ok'}".to_string()))
-}
-
 #[post("/<userid>/new_comment/<articleid>", format = "application/json")]
 pub fn new_comment(userid: String, articleid: String) -> status::Accepted<String> {
-    status::Accepted(Some("{'result':'ok'}".to_string()))
-}
-
-#[post("/<userid>/approve/<articleid>", format = "application/json")]
-pub fn point_approve(userid: String, articleid: String) -> status::Accepted<String> {
-    status::Accepted(Some("{'result':'ok'}".to_string()))
-}
-
-#[post("/<userid>/like/<articleid>", format = "application/json")]
-pub fn point_like(userid: String, articleid: String) -> status::Accepted<String> {
     status::Accepted(Some("{'result':'ok'}".to_string()))
 }
