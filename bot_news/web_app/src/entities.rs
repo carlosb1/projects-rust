@@ -17,3 +17,35 @@ impl News {
         }
     }
 }
+
+pub struct User {
+    id: String,
+    name: String,
+    password: String,
+}
+
+impl User {
+    fn new(id: &str, name: &str, password: &str) -> User {
+        User {
+            id: id.to_string(),
+            name: name.to_string(),
+            password: password.to_string(),
+        }
+    }
+}
+
+pub struct Comment {
+    iduser: String,
+    idnew: String,
+    comment: String,
+}
+
+impl Comment {
+    fn new(iduser: &str, idnew: &str, comment: &str) -> Comment {
+        User {
+            iduser: iduser.to_string(),
+            idnew: idnew.to_string(),
+            comment: comment.to_string(),
+        }
+    }
+}

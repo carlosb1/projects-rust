@@ -17,13 +17,10 @@ pub struct NewsRepository {
 
 impl NewsRepository {
     pub fn new(host: String, port: u16) -> NewsRepository {
-        NewsRepository {
-            host: host,
-            port: port,
-        }
+        NewsRepository { host: port }
     }
     pub async fn put(self, news: News) -> Option<()> {
-        let client_options = ClientOptions::parse("mongodb://localhost:27017")
+        let client_options = ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port))
             .await
             .expect("It was not possible to set up the client");
         let client =
@@ -45,7 +42,7 @@ impl NewsRepository {
     }
 
     pub async fn all(self) -> Result<Vec<News>, Box<dyn Error>> {
-        let client_options = ClientOptions::parse("mongodb://localhost:27017")
+        let client_options = ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port))
             .await
             .expect("It was not possible to set up the client");
         let client =
