@@ -10,6 +10,14 @@ extern crate tera;
 mod routes;
 use crate::routes::{errors, static_files, user};
 
+/*
+*    let mut rt = tokio::runtime::Runtime::new().unwrap();
+   let fut = run_db();
+   let values = rt.block_on(fut);
+   println!("{:?}", values);
+*
+* */
+
 // tera
 use rocket_contrib::templates::Template;
 

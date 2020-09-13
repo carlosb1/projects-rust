@@ -23,13 +23,6 @@ default-features = false
 features = ["tera_templates", "json"]
 
 
-
-
 [[bin]]
 name="main"
 path="src/main.rs"
-
-
-[[bin]]
-name="main_db"
-path="src/main_db.rs"
