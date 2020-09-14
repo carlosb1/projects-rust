@@ -9,6 +9,8 @@ rocket = "0.4.0"
 tera = "0.11.20"
 tokio = {version = "0.2.*", features=["full"]}
 futures = "0.3.4"
+log = "0.4.8"
+dotenv="0.15.0"
 
 
 serde="1.0"
