@@ -1,4 +1,4 @@
-use entities::User;
+use crate::entities::User;
 use futures::stream::StreamExt;
 use mongodb::bson::doc;
 use mongodb::bson::Array;
@@ -20,24 +20,23 @@ impl UserRepository {
         UserRepository { host, port }
     }
     pub async fn insert_one(self, user: User) -> Option<()> {
-        let client_options = ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port))
-            .await
-            .expect("It was not possible to set up the client");
+        let client_options =
+            ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port).as_str())
+                .await
+                .expect("It was not possible to set up the client");
         let client =
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("users");
         let new_user = doc! {"id": user.id, "name": user.name, "password": user.password};
-        let val = collection.insert_one(new_user, None).await?;
-        match val {
-            Some(_) => Some(()),
-            None => None,
-        }
+        let val = collection.insert_one(new_user, None).await.ok()?;
+        Some(())
     }
 
-    pub async fn find_one(self, id: &str) -> Result<User, Box<dyn Error>> {
-        let client_options = ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port))
-            .await
-            .expect("It was not possible to set up the client");
+    pub async fn find_one(self, id: &str) -> Option<User> {
+        let client_options =
+            ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port).as_str())
+                .await
+                .expect("It was not possible to set up the client");
         let client =
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("users");
@@ -47,6 +46,7 @@ impl UserRepository {
             .expect("It was not possible to get the cursor");
 
         let empty_array = Array::new();
+
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(doc) => {
@@ -54,11 +54,12 @@ impl UserRepository {
                     let user = doc.get_str("link").unwrap_or("");
                     let password = doc.get_str("title").unwrap_or("");
                     let user = User::new(id, user, password);
-                    return Ok(user);
+                    return Some(user);
                 }
                 Err(e) => println!("{}", e),
             }
         }
+        None
     }
 }
 

@@ -7,6 +7,8 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate tera;
 
+mod db;
+mod entities;
 mod routes;
 use crate::routes::{errors, static_files, user};
 

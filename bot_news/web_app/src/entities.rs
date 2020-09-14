@@ -1,13 +1,16 @@
+use mongodb::bson::Array;
+use serde::{Deserialize, Serialize};
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct News {
-    id: String,
-    link: String,
-    title: String,
-    descrip: String,
-    data_ml: Array,
+    pub id: String,
+    pub link: String,
+    pub title: String,
+    pub descrip: String,
+    pub data_ml: Array,
 }
 impl News {
-    fn new(id: &str, link: &str, title: &str, descrip: &str, data_ml: Array) -> News {
+    pub fn new(id: &str, link: &str, title: &str, descrip: &str, data_ml: Array) -> News {
         News {
             id: id.to_string(),
             link: link.to_string(),
@@ -19,13 +22,13 @@ impl News {
 }
 
 pub struct User {
-    id: String,
-    name: String,
-    password: String,
+    pub id: String,
+    pub name: String,
+    pub password: String,
 }
 
 impl User {
-    fn new(id: &str, name: &str, password: &str) -> User {
+    pub fn new(id: &str, name: &str, password: &str) -> User {
         User {
             id: id.to_string(),
             name: name.to_string(),
@@ -35,14 +38,14 @@ impl User {
 }
 
 pub struct Comment {
-    iduser: String,
-    idnew: String,
-    comment: String,
+    pub iduser: String,
+    pub idnew: String,
+    pub comment: String,
 }
 
 impl Comment {
-    fn new(iduser: &str, idnew: &str, comment: &str) -> Comment {
-        User {
+    pub fn new(iduser: &str, idnew: &str, comment: &str) -> Comment {
+        Comment {
             iduser: iduser.to_string(),
             idnew: idnew.to_string(),
             comment: comment.to_string(),

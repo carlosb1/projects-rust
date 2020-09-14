@@ -1,4 +1,4 @@
-use entities::Comment;
+use crate::entities::Comment;
 use futures::stream::StreamExt;
 use mongodb::bson::doc;
 use mongodb::bson::Array;
@@ -20,30 +20,33 @@ impl CommentRepository {
         CommentRepository { host, port }
     }
     pub async fn insert_one(self, comment: Comment) -> Option<()> {
-        let client_options = ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port))
-            .await
-            .expect("It was not possible to set up the client");
+        let client_options =
+            ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port).as_str())
+                .await
+                .expect("It was not possible to set up the client");
         let client =
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("comments");
         let new_comment =
             doc! {"iduser": comment.iduser, "idnew": comment.idnew, "comment": comment.comment};
-        let val = collection.insert_one(new_user, None).await?;
-        match val {
-            Some(_) => Some(()),
-            None => None,
-        }
+        let _ = collection
+            .insert_one(new_comment, None)
+            .await
+            .ok()?
+            .inserted_id;
+        Some(())
     }
 
     pub async fn find_by_new_id(self, idnew: &str) -> Result<Vec<Comment>, Box<dyn Error>> {
-        let client_options = ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port))
-            .await
-            .expect("It was not possible to set up the client");
+        let client_options =
+            ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port).as_str())
+                .await
+                .expect("It was not possible to set up the client");
         let client =
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("comments");
         let mut cursor = collection
-            .find(doc! {"idnew", idnew}, FindOptions::builder().build())
+            .find(doc! {"idnew": idnew}, FindOptions::builder().build())
             .await
             .expect("It was not possible to get the cursor");
 
@@ -56,7 +59,7 @@ impl CommentRepository {
                     let idnew = doc.get_str("idnew").unwrap_or("");
                     let comment = doc.get_str("comment").unwrap_or("");
                     let new_comment = Comment::new(iduser, idnew, comment);
-                    values.push();
+                    values.push(new_comment);
                 }
                 Err(e) => println!("{}", e),
             }
