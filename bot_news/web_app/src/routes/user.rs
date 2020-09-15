@@ -39,8 +39,8 @@ pub fn single_page_app() -> io::Result<NamedFile> {
 #[get("/main")]
 pub fn main() -> Template {
     info!("Loading main web");
-    let mongo_host = env::var("mongo_host").unwrap_or("localhost".to_string());
-    let mongo_port: u16 = env::var("mongo_port")
+    let mongo_host = env::var("MONGO_HOST").unwrap_or("localhost".to_string());
+    let mongo_port: u16 = env::var("MONGO_PORT")
         .unwrap_or("27017".to_string())
         .parse::<u16>()
         .expect("It is not a number.");
@@ -59,8 +59,8 @@ pub fn main() -> Template {
 #[post("/<userid>/new_comment/<articleid>", format = "application/json")]
 pub fn new_comment(userid: String, articleid: String) -> status::Accepted<String> {
     info!("Loading add new comment");
-    let mongo_host = env::var("mongo_host").unwrap_or("localhost".to_string());
-    let mongo_port = env::var("mongo_port")
+    let mongo_host = env::var("MONGO_HOST").unwrap_or("localhost".to_string());
+    let mongo_port = env::var("MONGO_PORT")
         .unwrap_or("27017".to_string())
         .parse::<u16>()
         .expect("It is not a number.");
