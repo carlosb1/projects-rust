@@ -1,5 +1,6 @@
 #![feature(proc_macro_hygiene)]
 
+use log::info;
 use rocket::response::status;
 use rocket::response::NamedFile;
 use rocket_contrib::json::{Json, JsonValue};
@@ -13,8 +14,8 @@ use crate::db::comment_repo::CommentRepository;
 use crate::db::new_repo::NewsRepository;
 use crate::db::user_repo::UserRepository;
 use crate::entities::Comment;
+
 //TODO change name endpoint
-//TODO add logging
 
 #[derive(Debug)]
 pub enum ApiError {
@@ -24,17 +25,20 @@ pub enum ApiError {
 
 #[get("/index")]
 pub fn index() -> Template {
-    let context: HashMap<&str, &str> = [("name", "Carlos")].iter().cloned().collect();
+    info!("Rendering index web");
+    let mut context = Context::new();
     Template::render("main", &context)
 }
 
 #[get("/share")]
 pub fn single_page_app() -> io::Result<NamedFile> {
+    info!("Loading static web");
     NamedFile::open("static/build/index.html")
 }
 
 #[get("/main")]
 pub fn main() -> Template {
+    info!("Loading main web");
     let mongo_host = env::var("mongo_host").unwrap_or("localhost".to_string());
     let mongo_port: u16 = env::var("mongo_port")
         .unwrap_or("27017".to_string())
@@ -54,17 +58,17 @@ pub fn main() -> Template {
 
 #[post("/<userid>/new_comment/<articleid>", format = "application/json")]
 pub fn new_comment(userid: String, articleid: String) -> status::Accepted<String> {
+    info!("Loading add new comment");
     let mongo_host = env::var("mongo_host").unwrap_or("localhost".to_string());
     let mongo_port = env::var("mongo_port")
         .unwrap_or("27017".to_string())
         .parse::<u16>()
         .expect("It is not a number.");
-    // TODO add environment variable.
     let comment_repo = CommentRepository::new(mongo_host.clone(), mongo_port.clone());
 
     // TODO get json data information.
     let comment_info = "";
-    comment_repo.insert_one(Comment::new(
+    let _ = comment_repo.insert_one(Comment::new(
         userid.as_str(),
         articleid.as_str(),
         comment_info,
