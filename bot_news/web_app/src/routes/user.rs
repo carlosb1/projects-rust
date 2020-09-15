@@ -35,14 +35,12 @@ pub fn single_page_app() -> io::Result<NamedFile> {
 
 #[get("/main")]
 pub fn main() -> Template {
-    let MONGO_HOST: &str = env::var("MONGO_HOST")
-        .unwrap_or("localhost".to_string())
-        .as_str();
-    let MONGO_PORT: u16 = env::var("MONGO_PORT")
+    let mongo_host = env::var("mongo_host").unwrap_or("localhost".to_string());
+    let mongo_port: u16 = env::var("mongo_port")
         .unwrap_or("27017".to_string())
         .parse::<u16>()
         .expect("It is not a number.");
-    let news_repo = NewsRepository::new("localhost".to_string(), 27017);
+    let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     //TODO how to manage this error
@@ -56,15 +54,13 @@ pub fn main() -> Template {
 
 #[post("/<userid>/new_comment/<articleid>", format = "application/json")]
 pub fn new_comment(userid: String, articleid: String) -> status::Accepted<String> {
-    let MONGO_HOST = env::var("MONGO_HOST")
-        .unwrap_or("localhost".to_string())
-        .as_str();
-    let MONGO_PORT = env::var("MONGO_PORT")
+    let mongo_host = env::var("mongo_host").unwrap_or("localhost".to_string());
+    let mongo_port = env::var("mongo_port")
         .unwrap_or("27017".to_string())
         .parse::<u16>()
         .expect("It is not a number.");
     // TODO add environment variable.
-    let comment_repo = CommentRepository::new(MONGO_HOST.to_string().clone(), MONGO_PORT.clone());
+    let comment_repo = CommentRepository::new(mongo_host.clone(), mongo_port.clone());
 
     // TODO get json data information.
     let comment_info = "";
