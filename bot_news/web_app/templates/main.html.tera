@@ -9,7 +9,6 @@
         <title>Rust example recommendations</title>
       	<link rel="stylesheet" href="/static/node_modules/bootstrap/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="/static/node_modules/font-awesome/css/font-awesome.min.css">
-      	<script src="/static/node_modules/axios/dist/axios.min.js"> </script>
       	<script src="/static/node_modules/jquery/dist/jquery.min.js"> </script>
        	<script src="/static/node_modules/bootstrap/dist/js/bootstrap.min.js">  </script>
        	<script src="/static/node_modules/bootstrap-tagsinput/dist/bootstrap-tagsinput.min.js">  </script>
@@ -22,6 +21,7 @@
         color: #85144B ;
         background-color: #AAAAAA ;
         font-weight: bold;
+        font-size: small;
 
       };
 
@@ -67,18 +67,20 @@
       <div class="list-group list-group-flush border rounded">
           {% for new in news %}
 
-              <a
-                  class="list-group-item list-group-item-action"
-                  >
-                  <strong class="mr-2" data-toggle="collapse" href="#collapseComment" role="button" aria-expanded="false" aria-controls="collapseComment">id</strong>
-                  <span> {{ new.id }}</span>
-                  <small class="text-muted"><a href="{{ new.link }}">{{ new.title }}</a></small>
-                      <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
-                      <input class="input-sm" type="text" value="" data-role="tagsinput" />
-                      <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('1','2')"></i> </button>
-                      <button type="button" class="btn btn-success btn-sm" onclick="approve('1','2')">Approved</button>
-                      <button type="button" class="btn btn-danger  btn-sm" onclick="fake('1', '2')">Fake</button>
-                    </div>
+              <a class="list-group-item list-group-item-action">                 
+                  <small> <strong class="mr-2" data-toggle="collapse" href="#collapseComment" role="button" aria-expanded="false" aria-controls="collapseComment"> {{ new.id }} </strong> </small>
+                  <span onclick="window.location.href='{{ new.link }}';">                   
+                      <small div="title_{{ new.id }}"  class="text-muted">
+                        {{ new.title }}
+                      </small>
+		              </span>
+                <small class="text-muted"></small>
+                <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
+                    <input class="input-sm" type="text" value="" data-role="tagsinput" />
+                    <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('{{ new.id }}','2')"></i> </button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="approve('{{ new.id }}','2')">Approved</button>
+                    <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '2')">Fake</button>
+                </div>
               </a>
               <div class="collapse" id="collapseComment">
               <div class="card card-body">
