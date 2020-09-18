@@ -48,7 +48,7 @@ pub fn single_page_app() -> io::Result<NamedFile> {
     NamedFile::open("static/build/index.html")
 }
 
-fn load_mongo_credentials() -> (String, u16) {
+pub fn load_mongo_credentials() -> (String, u16) {
     let mongo_host = env::var("MONGO_HOST").unwrap_or("localhost".to_string());
     let mongo_port: u16 = env::var("MONGO_PORT")
         .unwrap_or("27017".to_string())
@@ -111,8 +111,9 @@ pub fn fake(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
         let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
-        if let Some(mut user) = user_repo.find_one(userid.as_str()).await {
+        if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
             user.fake_articles.push(articleid.clone());
+            user_repo.clone().insert_one(user).await;
             if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
                 new.fake += 1;
                 news_repo.insert_one(new).await;
@@ -131,8 +132,9 @@ pub fn like(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
         let (mongo_host, mongo_port) = load_mongo_credentials();
         let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
-        if let Some(mut user) = user_repo.find_one(userid.as_str()).await {
-            user.fake_articles.push(articleid.clone());
+        if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
+            user.like_articles.push(articleid.clone());
+            user_repo.clone().insert_one(user).await;
             if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
                 new.liked += 1;
                 news_repo.insert_one(new).await;
@@ -157,8 +159,9 @@ pub fn approve(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<
         let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
-        if let Some(mut user) = user_repo.find_one(userid.as_str()).await {
+        if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
             user.approved_articles.push(articleid.clone());
+            user_repo.clone().insert_one(user).await;
             if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
                 new.approved += 1;
                 news_repo.insert_one(new).await;

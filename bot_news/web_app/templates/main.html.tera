@@ -77,7 +77,7 @@
                 <small class="text-muted"></small>
                 <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
                     <input class="input-sm" type="text" value="" data-role="tagsinput" />
-                    <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('{{ new.id }}','2')"></i> </button>
+                    <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('{{ new.id }}','{{user.id}}')"></i> </button>
                     <button type="button" class="btn btn-success btn-sm" onclick="approve('{{ new.id }}','{{user.id}}')">Approved</button>
                     <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '{{user.id}}')">Fake</button>
                 </div>

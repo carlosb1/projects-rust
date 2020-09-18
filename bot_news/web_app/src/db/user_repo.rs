@@ -27,9 +27,19 @@ impl UserRepository {
         let client =
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("users");
-        let new_user = doc! {"id": user.id, "name": user.name, "password": user.password};
-        let val = collection.insert_one(new_user, None).await.ok()?;
-        Some(())
+        let _update = doc! {"$set" : {"id": user.id.clone(), "name": user.name, "password": user.password, "like_articles": user.like_articles, "approved_articles": user.approved_articles, "fake_articles": user.fake_articles}};
+        let _filter = doc! {
+            "id": user.id.clone()
+        };
+        let val = collection
+            .find_one_and_update(_filter, _update, None)
+            .await
+            .expect("It was a problem to get result find and update");
+
+        match val {
+            Some(_) => Some(()),
+            None => None,
+        }
     }
 
     pub async fn find_one(self, id: &str) -> Option<User> {
@@ -51,9 +61,37 @@ impl UserRepository {
             match result {
                 Ok(doc) => {
                     let id = doc.get_str("id").unwrap_or("");
-                    let user = doc.get_str("link").unwrap_or("");
-                    let password = doc.get_str("title").unwrap_or("");
-                    let user = User::new(id, user, password);
+                    let name = doc.get_str("name").unwrap_or("");
+                    let password = doc.get_str("password").unwrap_or("");
+                    let like_articless = doc
+                        .get_array("like_articles")
+                        .into_iter()
+                        .map(|x| x.as_str().to_string())
+                        .recv()
+                        .collect()
+                        .unwrap_or(Vec::new());
+                    let approved_articles = doc
+                        .get_array("approved_articles")
+                        .into_iter()
+                        .map(|x| x.as_str().to_string())
+                        .recv()
+                        .collect()
+                        .unwrap_or(Vec::new());
+                    let fake_articles = doc
+                        .get_array("fake_articles")
+                        .into_iter()
+                        .map(|x| x.as_str().to_string())
+                        .recv()
+                        .collect()
+                        .unwrap_or(Vec::new());
+                    let user = User::new_with_articles(
+                        id,
+                        user,
+                        password,
+                        like_articles,
+                        approved_articles,
+                        fake_articles,
+                    );
                     return Some(user);
                 }
                 Err(e) => println!("{}", e),
