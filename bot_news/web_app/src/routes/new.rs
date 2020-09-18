@@ -14,8 +14,15 @@ use crate::db::comment_repo::CommentRepository;
 use crate::db::new_repo::NewsRepository;
 use crate::db::user_repo::UserRepository;
 use crate::entities::{Comment, User};
+use serde::Deserialize;
 
 //TODO change name endpoint
+
+#[derive(Deserialize, Clone)]
+pub struct CommentDTO {
+    pub userid: String,
+    pub comment: String,
+}
 
 #[derive(Debug)]
 pub enum ApiError {
@@ -58,8 +65,12 @@ pub fn main() -> Template {
     Template::render("main", &context)
 }
 
-#[post("/<userid>/new_comment/<articleid>", format = "application/json")]
-pub fn new_comment(userid: String, articleid: String) -> status::Accepted<String> {
+#[post(
+    "/<articleid>/new_comment",
+    format = "application/json",
+    data = "<comment>"
+)]
+pub fn new_comment(articleid: String, comment: Json<CommentDTO>) -> status::Accepted<String> {
     info!("Loading add new comment");
     let mongo_host = env::var("MONGO_HOST").unwrap_or("localhost".to_string());
     let mongo_port = env::var("MONGO_PORT")
@@ -69,11 +80,10 @@ pub fn new_comment(userid: String, articleid: String) -> status::Accepted<String
     let comment_repo = CommentRepository::new(mongo_host.clone(), mongo_port.clone());
 
     // TODO get json data information.
-    let comment_info = "";
     let _ = comment_repo.insert_one(Comment::new(
-        userid.as_str(),
+        comment.userid.as_str(),
         articleid.as_str(),
-        comment_info,
+        comment.comment.as_str(),
     ));
     status::Accepted(Some("{'result':'ok'}".to_string()))
 }

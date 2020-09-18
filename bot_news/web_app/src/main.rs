@@ -11,7 +11,7 @@ mod db;
 mod entities;
 mod routes;
 mod utils;
-use crate::routes::{errors, static_files, user};
+use crate::routes::{errors, new, static_files};
 
 // tera
 use rocket_contrib::templates::Template;
@@ -23,9 +23,9 @@ fn rocket() -> rocket::Rocket {
             "/",
             routes![
                 static_files::file,
-                user::index,
-                user::single_page_app,
-                user::main,
+                new::index,
+                new::single_page_app,
+                new::main,
             ],
         )
         .register(catchers![errors::not_found])
