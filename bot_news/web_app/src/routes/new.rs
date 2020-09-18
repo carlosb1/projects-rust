@@ -86,11 +86,13 @@ pub fn new_comment(articleid: String, comment: Json<CommentDTO>) -> status::Acce
     async fn run(articleid: String, userid: String, comment: String) {
         let (mongo_host, mongo_port) = load_mongo_credentials();
         let comment_repo = CommentRepository::new(mongo_host.clone(), mongo_port.clone());
-        let _ = comment_repo.insert_one(Comment::new(
-            userid.as_str(),
-            articleid.as_str(),
-            comment.as_str(),
-        ));
+        let _ = comment_repo
+            .insert_one(Comment::new(
+                userid.as_str(),
+                articleid.as_str(),
+                comment.as_str(),
+            ))
+            .await;
     }
     rt.block_on(run(
         articleid,
@@ -113,7 +115,7 @@ pub fn fake(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
             user.fake_articles.push(articleid.clone());
             if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
                 new.fake += 1;
-                news_repo.insert_one(new);
+                news_repo.insert_one(new).await;
             }
         }
     }
@@ -133,7 +135,7 @@ pub fn like(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
             user.fake_articles.push(articleid.clone());
             if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
                 new.liked += 1;
-                news_repo.insert_one(new);
+                news_repo.insert_one(new).await;
             }
         }
     }
@@ -159,7 +161,7 @@ pub fn approve(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<
             user.approved_articles.push(articleid.clone());
             if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
                 new.approved += 1;
-                news_repo.insert_one(new);
+                news_repo.insert_one(new).await;
             }
         }
     }
