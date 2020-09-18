@@ -10,6 +10,7 @@ extern crate tera;
 mod db;
 mod entities;
 mod routes;
+mod utils;
 use crate::routes::{errors, static_files, user};
 
 // tera
