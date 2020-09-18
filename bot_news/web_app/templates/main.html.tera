@@ -78,8 +78,8 @@
                 <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
                     <input class="input-sm" type="text" value="" data-role="tagsinput" />
                     <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('{{ new.id }}','2')"></i> </button>
-                    <button type="button" class="btn btn-success btn-sm" onclick="approve('{{ new.id }}','2')">Approved</button>
-                    <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '2')">Fake</button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="approve('{{ new.id }}','{{user.id}}')">Approved</button>
+                    <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '{{user.id}}')">Fake</button>
                 </div>
               </a>
               <div class="collapse" id="collapseComment">
@@ -105,7 +105,7 @@
                               <p>Praesent molestie ante nec metus convallis aliquam. Ut aliquam tincidunt mollis. Maecenas et ex sit amet est vehicula ultrices sed sit amet elit. Suspendisse potenti. Aenean et quam ut purus convallis porttitor. Mauris porttitor pretium elementum. Duis blandit elit tincidunt ipsum ultricies, ut faucibus lorem facilisis. Proin ipsum turpis, pharetra in lorem ac, porta ullamcorper velit. Proin gravida odio eget elit ultricies sodales. Vivamus vel tincidunt ligula. Proin pulvinar pellentesque velit eget luctus. Aliquam vitae enim ut purus vestibulum sollicitudin sit amet eget lacus. Nunc tempus fringilla tincidunt. </p>
                               </div>
                           </div>
-                          <button class="btn  btn-outline-info float-left m-2" onclick="new_comment("comment1')">Send</button>
+                          <button class="btn  btn-outline-info float-left m-2" onclick="new_comment('{{ new.id }}','{{user.id}}','comment1')">Send</button>
                         </form>
                     </div>
                 </div>

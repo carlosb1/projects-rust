@@ -13,7 +13,7 @@ use tera::Context;
 use crate::db::comment_repo::CommentRepository;
 use crate::db::new_repo::NewsRepository;
 use crate::db::user_repo::UserRepository;
-use crate::entities::Comment;
+use crate::entities::{Comment, User};
 
 //TODO change name endpoint
 
@@ -53,6 +53,8 @@ pub fn main() -> Template {
     let news = rt.block_on(fut).unwrap_or(Vec::new());
     let mut context = Context::new();
     context.insert("news", &news);
+    let user = User::new("0", "anonymous", "");
+    context.insert("user", &user);
     Template::render("main", &context)
 }
 

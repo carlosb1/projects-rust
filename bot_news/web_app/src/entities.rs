@@ -21,6 +21,7 @@ impl News {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct User {
     pub id: String,
     pub name: String,
@@ -37,6 +38,7 @@ impl User {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Comment {
     pub iduser: String,
     pub idnew: String,
