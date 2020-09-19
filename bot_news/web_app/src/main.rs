@@ -44,6 +44,6 @@ fn main() {
     let new_user = User::new("0", "anonymous", "");
 
     let mut rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(user_repo.insert_one(new_user));
+    rt.block_on(user_repo.update(new_user));
     rocket().launch();
 }

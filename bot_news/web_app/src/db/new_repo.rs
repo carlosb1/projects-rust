@@ -19,7 +19,7 @@ impl NewsRepository {
     pub fn new(host: String, port: u16) -> NewsRepository {
         NewsRepository { host, port }
     }
-    pub async fn insert_one(self, news: News) -> Option<()> {
+    pub async fn update(self, news: News) -> Option<()> {
         let client_options =
             ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port).as_str())
                 .await
@@ -28,7 +28,6 @@ impl NewsRepository {
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("news");
         let _update = doc! {"$set" : { "id": news.id.clone(), "link": news.link, "title": news.title, "descrip": news.descrip, "approved": news.approved, "liked": news.liked, "fake": news.fake}};
-
         let _filter = doc! {
             "id": news.id.clone()
         };

@@ -112,11 +112,13 @@ pub fn fake(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
         if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
-            user.fake_articles.push(articleid.clone());
-            user_repo.clone().insert_one(user).await;
-            if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
-                new.fake += 1;
-                news_repo.insert_one(new).await;
+            if !user.fake_articles.contains(&articleid.clone()) {
+                user.fake_articles.push(articleid.clone());
+                user_repo.clone().update(user).await;
+                if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
+                    new.fake += 1;
+                    news_repo.update(new).await;
+                }
             }
         }
     }
@@ -133,11 +135,13 @@ pub fn like(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
         let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
         if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
-            user.like_articles.push(articleid.clone());
-            user_repo.clone().insert_one(user).await;
-            if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
-                new.liked += 1;
-                news_repo.insert_one(new).await;
+            if !user.like_articles.contains(&articleid.clone()) {
+                user.like_articles.push(articleid.clone());
+                user_repo.clone().update(user).await;
+                if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
+                    new.liked += 1;
+                    news_repo.update(new).await;
+                }
             }
         }
     }
@@ -160,11 +164,13 @@ pub fn approve(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
         if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
-            user.approved_articles.push(articleid.clone());
-            user_repo.clone().insert_one(user).await;
-            if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
-                new.approved += 1;
-                news_repo.insert_one(new).await;
+            if !user.approved_articles.contains(&articleid.clone()) {
+                user.approved_articles.push(articleid.clone());
+                user_repo.clone().update(user).await;
+                if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
+                    new.approved += 1;
+                    news_repo.update(new).await;
+                }
             }
         }
     }
