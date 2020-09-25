@@ -1,6 +1,7 @@
 
 
- function new_comment(articleid, userid, comment) {
+ function new_comment(articleid, userid) {
+    var comment = $.trim($("#textarea_comment_"+articleid).val());
 	console.log('Adding a new comment: ' + comment);
 	var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -8,7 +9,8 @@
              console.log(this.responseText);
          }
     };
-    xhttp.open("POST","/"+ articleid + "/comment", true);
+
+    xhttp.open("POST","/"+ articleid + "/new_comment", true);
     xhttp.setRequestHeader("Content-type", "application/json");
     xhttp.send(JSON.stringify({ "userid": userid, "comment": comment }));
 }

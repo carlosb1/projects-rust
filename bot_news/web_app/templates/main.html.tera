@@ -87,10 +87,10 @@
               <div class="collapse" id="collapseComment">
                 <div class="card card-body">
                   <div class="post-comments">
-                          <form>
+                          <form id="form_{{new.id}}">
                             <div class="form-group">
                               <label for="comment" class="float-left">Your Comment</label>
-                              <textarea name="comment" class="form-control" rows="3"></textarea>
+                              <textarea name="comment" class="form-control" rows="3" id="textarea_comment_{{ new.id }}"></textarea>
                             </div>
                             <div>
                             <hr>
@@ -103,7 +103,7 @@
                               <p> {{ comment[2] }}</p>
                             </div>
                             {% endfor %}
-                            <button class="btn  btn-outline-info float-left m-2" onclick="new_comment('{{ new.id }}','{{user.id}}','comment1')">Send</button>
+                            <button class="btn  btn-outline-info float-left m-2" onclick="new_comment('{{ new.id }}','{{user.id}}')">Send</button>
                           </form>
                       </div>
                   </div>
