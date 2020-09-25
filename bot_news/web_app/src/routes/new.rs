@@ -96,6 +96,8 @@ pub fn main() -> Template {
             .into_iter()
             .zip(value_comments.into_iter())
             .collect();
+
+        //fake data
         let mut context = Context::new();
         context.insert("news", &news);
         context.insert("comments", &comments);

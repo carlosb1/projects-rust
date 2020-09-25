@@ -100,17 +100,8 @@
                               <div class="head">
                               <small><strong class='user'>{{ comment[0] }}</strong> not added date yet</small>
                               </div>
-                              <p> {{ comment[2] }}< </p>
+                              <p> {{ comment[2] }}</p>
                             </div>
-                            <!--
-                            <div class="row comment">
-                              <div class="head">
-                                <small><strong class='user'>Giesche</strong> 30.10.2017 12:13</small>
-                                </div>
-                                <p>Praesent molestie ante nec metus convallis aliquam. Ut aliquam tincidunt mollis. Maecenas et ex sit amet est vehicula ultrices sed sit amet elit. Suspendisse potenti. Aenean et quam ut purus convallis porttitor. Mauris porttitor pretium elementum. Duis blandit elit tincidunt ipsum ultricies, ut faucibus lorem facilisis. Proin ipsum turpis, pharetra in lorem ac, porta ullamcorper velit. Proin gravida odio eget elit ultricies sodales. Vivamus vel tincidunt ligula. Proin pulvinar pellentesque velit eget luctus. Aliquam vitae enim ut purus vestibulum sollicitudin sit amet eget lacus. Nunc tempus fringilla tincidunt. </p>
-                                </div>
-                            </div>
-                            -->
                             {% endfor %}
                             <button class="btn  btn-outline-info float-left m-2" onclick="new_comment('{{ new.id }}','{{user.id}}','comment1')">Send</button>
                           </form>
