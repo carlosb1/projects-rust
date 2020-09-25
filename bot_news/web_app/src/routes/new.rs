@@ -65,7 +65,6 @@ pub fn main() -> Template {
         let (mongo_host, mongo_port) = load_mongo_credentials();
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
         let comment_repo = CommentRepository::new(mongo_host.clone(), mongo_port.clone());
-        let mut rt2 = tokio::runtime::Runtime::new().unwrap();
 
         //TODO how to filter news
         // find by user? or more popular news.
@@ -77,19 +76,20 @@ pub fn main() -> Template {
             .map(|new| new.id.to_string())
             .rev()
             .collect();
-        let value_comments: Vec<Vec<Vec<String>>> = id_news
-            .clone()
-            .into_iter()
-            .map(|id_new| {
-                rt2.block_on(comment_repo.clone().find_by_new_id(&id_new))
-                    .unwrap_or(Vec::new())
-                    .into_iter()
-                    .map(|comment| vec![comment.iduser, comment.idnew, comment.comment])
-                    .rev()
-                    .collect()
-            })
-            .rev()
-            .collect();
+        let mut value_comments: Vec<Vec<Vec<String>>> = Vec::new();
+        for id_new in id_news.clone() {
+            //vec of comment
+            let comments_by_id = comment_repo
+                .clone()
+                .find_by_new_id(&id_new)
+                .await
+                .unwrap_or(Vec::new())
+                .into_iter()
+                .map(|comment| vec![comment.iduser, comment.idnew, comment.comment])
+                .rev()
+                .collect();
+            value_comments.push(comments_by_id);
+        }
 
         let comments: HashMap<_, _> = id_news
             .clone()
@@ -99,6 +99,7 @@ pub fn main() -> Template {
         let mut context = Context::new();
         context.insert("news", &news);
         context.insert("comments", &comments);
+        //TODO check this comment.
         let user = User::new("0", "anonymous", "");
         context.insert("user", &user);
         context
