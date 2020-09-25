@@ -82,34 +82,44 @@
                     <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '{{user.id}}')">Fake</button>
                 </div>
               </a>
+              {% if comments %}
+              
               <div class="collapse" id="collapseComment">
-              <div class="card card-body">
-                 <div class="post-comments">
-                        <form>
-                          <div class="form-group">
-                            <label for="comment" class="float-left">Your Comment</label>
-                            <textarea name="comment" class="form-control" rows="3"></textarea>
-                          </div>
-                          <div>
-                          <hr>
-                          <div class="row comment">
-                            <div class="head">
-                            <small><strong class='user'>Diablo25</strong> 30.10.2017 12:13</small>
+                <div class="card card-body">
+                  <div class="post-comments">
+                          <form>
+                            <div class="form-group">
+                              <label for="comment" class="float-left">Your Comment</label>
+                              <textarea name="comment" class="form-control" rows="3"></textarea>
                             </div>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non lorem elementum, accumsan magna sed, faucibus mauris. Nulla pellentesque ante nibh, ac hendrerit ante fermentum sed. Nunc in libero dictum, porta nibh pellentesque, ultrices dolor. Curabitur nunc ipsum, blandit vel aliquam id, aliquam vel velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed sit amet mi dignissim, pretium justo non, lacinia libero. Nulla facilisi. Donec id sem velit. </p>
-                          </div>
-                          <div class="row comment">
-                            <div class="head">
-                              <small><strong class='user'>Giesche</strong> 30.10.2017 12:13</small>
+                            <div>
+                            <hr>
+                            {% for comment in comments[new.id] %}
+                            
+                            <div class="row comment">
+                              <div class="head">
+                              <small><strong class='user'>{{ comment[0] }}</strong> not added date yet</small>
                               </div>
-                              <p>Praesent molestie ante nec metus convallis aliquam. Ut aliquam tincidunt mollis. Maecenas et ex sit amet est vehicula ultrices sed sit amet elit. Suspendisse potenti. Aenean et quam ut purus convallis porttitor. Mauris porttitor pretium elementum. Duis blandit elit tincidunt ipsum ultricies, ut faucibus lorem facilisis. Proin ipsum turpis, pharetra in lorem ac, porta ullamcorper velit. Proin gravida odio eget elit ultricies sodales. Vivamus vel tincidunt ligula. Proin pulvinar pellentesque velit eget luctus. Aliquam vitae enim ut purus vestibulum sollicitudin sit amet eget lacus. Nunc tempus fringilla tincidunt. </p>
-                              </div>
-                          </div>
-                          <button class="btn  btn-outline-info float-left m-2" onclick="new_comment('{{ new.id }}','{{user.id}}','comment1')">Send</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+                              <p> {{ comment[2] }}< </p>
+                            </div>
+                            <!--
+                            <div class="row comment">
+                              <div class="head">
+                                <small><strong class='user'>Giesche</strong> 30.10.2017 12:13</small>
+                                </div>
+                                <p>Praesent molestie ante nec metus convallis aliquam. Ut aliquam tincidunt mollis. Maecenas et ex sit amet est vehicula ultrices sed sit amet elit. Suspendisse potenti. Aenean et quam ut purus convallis porttitor. Mauris porttitor pretium elementum. Duis blandit elit tincidunt ipsum ultricies, ut faucibus lorem facilisis. Proin ipsum turpis, pharetra in lorem ac, porta ullamcorper velit. Proin gravida odio eget elit ultricies sodales. Vivamus vel tincidunt ligula. Proin pulvinar pellentesque velit eget luctus. Aliquam vitae enim ut purus vestibulum sollicitudin sit amet eget lacus. Nunc tempus fringilla tincidunt. </p>
+                                </div>
+                            </div>
+                            -->
+                            {% endfor %}
+                            <button class="btn  btn-outline-info float-left m-2" onclick="new_comment('{{ new.id }}','{{user.id}}','comment1')">Send</button>
+                          </form>
+                      </div>
+                  </div>
+              </div>
+              
+              {% endif %}
+ 
           {% endfor %}
       </div>
     </div>
