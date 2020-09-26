@@ -2,6 +2,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use]
 extern crate rocket;
+extern crate crypto;
 extern crate rocket_contrib;
 extern crate serde_derive;
 extern crate serde_json;

@@ -69,8 +69,72 @@ impl UserRepository {
         let client =
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("users");
+
+        let _filter = doc! {
+        "id": id.to_string().clone()
+        };
         let mut cursor = collection
-            .find(None, FindOptions::builder().build())
+            .find(_filter, FindOptions::builder().build())
+            .await
+            .expect("It was not possible to get the cursor");
+
+        let empty_array = Array::new();
+
+        while let Some(result) = cursor.next().await {
+            match result {
+                Ok(doc) => {
+                    let id = doc.get_str("id").unwrap_or("");
+                    let name = doc.get_str("name").unwrap_or("");
+                    let password = doc.get_str("password").unwrap_or("");
+                    let like_articles = doc
+                        .get_array("like_articles")
+                        .unwrap_or(&Vec::new())
+                        .into_iter()
+                        .map(Bson::from)
+                        .map(|x| x.as_str().unwrap().to_string())
+                        .collect::<Vec<String>>();
+                    let approved_articles = doc
+                        .get_array("approved_articles")
+                        .unwrap_or(&Vec::new())
+                        .into_iter()
+                        .map(Bson::from)
+                        .map(|x| x.as_str().unwrap().to_string())
+                        .collect::<Vec<String>>();
+                    let fake_articles = doc
+                        .get_array("fake_articles")
+                        .unwrap_or(&Vec::new())
+                        .into_iter()
+                        .map(Bson::from)
+                        .map(|x| x.as_str().unwrap().to_string())
+                        .collect::<Vec<String>>();
+                    let user = User::new_with_articles(
+                        id,
+                        name,
+                        password,
+                        like_articles,
+                        approved_articles,
+                        fake_articles,
+                    );
+                    return Some(user);
+                }
+                Err(e) => info!("{}", e),
+            }
+        }
+        None
+    }
+    pub async fn find_one_by_name(self, name: &str) -> Option<User> {
+        let client_options =
+            ClientOptions::parse(format!("mongodb://{}:{}", self.host, self.port).as_str())
+                .await
+                .expect("It was not possible to set up the client");
+        let client =
+            Client::with_options(client_options).expect("It was not possible to set up options");
+        let collection = client.database("db_news").collection("users");
+        let _filter = doc! {
+        "name": name.to_string().clone()
+        };
+        let mut cursor = collection
+            .find(_filter, FindOptions::builder().build())
             .await
             .expect("It was not possible to get the cursor");
 
@@ -119,7 +183,6 @@ impl UserRepository {
         None
     }
 }
-
 impl<'a, 'r> FromRequest<'a, 'r> for UserRepository {
     type Error = ();
     fn from_request(_request: &'a Request<'r>) -> Outcome<Self, Self::Error> {

@@ -14,7 +14,9 @@ use crate::db::comment_repo::CommentRepository;
 use crate::db::new_repo::NewsRepository;
 use crate::db::user_repo::UserRepository;
 use crate::entities::{Comment, User};
-use serde::Deserialize;
+use crypto::digest::Digest;
+use crypto::sha3::Sha3;
+use serde::{Deserialize, Serialize};
 
 //TODO change name endpoint
 
@@ -29,15 +31,51 @@ pub struct TagDTO {
     pub tags: Vec<String>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct UserIdDTO {
     pub userid: String,
+}
+#[derive(Deserialize, Serialize, Clone)]
+pub struct LoginDTO {
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Debug)]
 pub enum ApiError {
     NotFound,
     InternalServerError,
+}
+
+fn hash_password(password: &String) -> String {
+    let mut hasher = Sha3::sha3_256();
+    hasher.input_str(password);
+    hasher.result_str()
+}
+
+#[post("/login", format = "json", data = "<login_info>")]
+pub fn login(login_info: Json<LoginDTO>) -> Json<Option<String>> {
+    info!("Loading main web");
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    async fn run(name: &str, password: &str) -> Option<String> {
+        //TODO check this comment
+        let (mongo_host, mongo_port) = load_mongo_credentials();
+        let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
+        if let Some(user) = user_repo.find_one_by_name(name).await {
+            if (user.password == hash_password(&password.to_string())) {
+                Some(user.id.clone())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    let result = rt.block_on(run(
+        login_info.username.as_str(),
+        login_info.password.as_str(),
+    ));
+    Json(result)
 }
 
 #[get("/index")]
