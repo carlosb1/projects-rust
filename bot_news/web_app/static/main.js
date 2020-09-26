@@ -11,15 +11,32 @@
 }
 function save_tags(articleid, userid) {
     console.log('Save tags User id:'+userid+" article:"+articleid);
-   
     let tags = $("#inputtags_"+articleid).val().split(",");
     console.log(tags); 
     var xhttp = new XMLHttpRequest();
     xhttp.open("POST","/"+ articleid + "/save_tags", true);
     xhttp.setRequestHeader("Content-type", "application/json");
     xhttp.send(JSON.stringify({ "userid": userid, "tags": tags}));
-    
 
+}
+
+function login() {
+    console.log('Apply login');
+    let username = $("#username").val();
+    let password = $("#password").val();
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            if (this.responseText != "null" ||  this.responseText) {
+               $("#username").disabled = true;
+               $("#password").disabled = true;
+            }
+        }
+    };
+    xhttp.open("POST","/login", true);
+    xhttp.setRequestHeader("Content-type", "application/json");
+    xhttp.send(JSON.stringify({ "username": username, "password": password}));
 
 }
 

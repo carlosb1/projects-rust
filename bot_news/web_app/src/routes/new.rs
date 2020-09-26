@@ -16,8 +16,8 @@ use crate::db::user_repo::UserRepository;
 use crate::entities::{Comment, User};
 use crypto::digest::Digest;
 use crypto::sha3::Sha3;
+use rocket::http::{Cookie, Cookies};
 use serde::{Deserialize, Serialize};
-
 //TODO change name endpoint
 
 #[derive(Deserialize, Clone)]
@@ -47,15 +47,15 @@ pub enum ApiError {
     InternalServerError,
 }
 
-fn hash_password(password: &String) -> String {
+pub fn hash_password(password: &String) -> String {
     let mut hasher = Sha3::sha3_256();
     hasher.input_str(password);
     hasher.result_str()
 }
 
 #[post("/login", format = "json", data = "<login_info>")]
-pub fn login(login_info: Json<LoginDTO>) -> Json<Option<String>> {
-    info!("Loading main web");
+pub fn login(login_info: Json<LoginDTO>, mut cookies: Cookies) -> Json<Option<String>> {
+    info!("Applying logging");
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     async fn run(name: &str, password: &str) -> Option<String> {
         //TODO check this comment
@@ -75,6 +75,12 @@ pub fn login(login_info: Json<LoginDTO>) -> Json<Option<String>> {
         login_info.username.as_str(),
         login_info.password.as_str(),
     ));
+    if (result.is_some()) {
+        let cookie = Cookie::build("userid", result.clone().unwrap())
+            .secure(true)
+            .finish();
+        cookies.add(cookie);
+    }
     Json(result)
 }
 
