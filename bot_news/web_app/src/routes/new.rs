@@ -66,11 +66,18 @@ pub fn load_mongo_credentials() -> (String, u16) {
 pub fn main() -> Template {
     info!("Loading main web");
     let mut rt = tokio::runtime::Runtime::new().unwrap();
-    async fn run() -> Context {
+    async fn run(userid: &str) -> Context {
+        //TODO check this comment.
         let (mongo_host, mongo_port) = load_mongo_credentials();
+
+        let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
         let comment_repo = CommentRepository::new(mongo_host.clone(), mongo_port.clone());
-
+        let user = user_repo
+            .clone()
+            .find_one(userid)
+            .await
+            .unwrap_or(User::new("0", "anonymous", ""));
         //TODO how to filter news
         // find by user? or more popular news.
         let values = news_repo.all().await;
@@ -83,11 +90,12 @@ pub fn main() -> Template {
             .collect();
         let mut value_comments: Vec<Vec<Vec<String>>> = Vec::new();
         let mut info: HashMap<_, _> = HashMap::new();
-        for id_new in id_news.clone() {
+        let mut tags: HashMap<_, _> = HashMap::new();
+        for new in news.clone() {
             //vec of comment
             let comments_by_id = comment_repo
                 .clone()
-                .find_by_new_id(&id_new)
+                .find_by_new_id(&new.id)
                 .await
                 .unwrap_or(Vec::new())
                 .into_iter()
@@ -96,8 +104,14 @@ pub fn main() -> Template {
                 .collect();
             value_comments.push(comments_by_id);
             let mut values_info: HashMap<String, bool> = HashMap::new();
-            // values_info.insert("tags")
-            info.insert(id_new.clone())
+            values_info.insert("star".to_string(), user.like_articles.contains(&new.id));
+            values_info.insert("fake".to_string(), user.fake_articles.contains(&new.id));
+            values_info.insert(
+                "approve".to_string(),
+                user.approved_articles.contains(&new.id),
+            );
+            info.insert(new.id.clone(), values_info);
+            tags.insert(new.id.clone(), new.tags.join(","));
         }
 
         let comments: HashMap<_, _> = id_news
@@ -110,12 +124,12 @@ pub fn main() -> Template {
         let mut context = Context::new();
         context.insert("news", &news);
         context.insert("comments", &comments);
-        //TODO check this comment.
-        let user = User::new("0", "anonymous", "");
         context.insert("user", &user);
+        context.insert("info", &info);
+        context.insert("tags", &tags);
         context
     }
-    let context = rt.block_on(run());
+    let context = rt.block_on(run("0"));
     Template::render("main", &context)
 }
 
@@ -148,23 +162,26 @@ pub fn new_comment(articleid: String, comment: Json<CommentDTO>) -> status::Acce
 
 #[post("/<articleid>/save_tags", format = "application/json", data = "<tags>")]
 pub fn save_tags(articleid: String, tags: Json<TagDTO>) -> status::Accepted<String> {
-    info!("Loading add new tags");
+    info!(
+        "{articleid}, {userid}",
+        articleid = articleid.as_str(),
+        userid = tags.clone().userid.as_str(),
+    );
     let mut rt = tokio::runtime::Runtime::new().unwrap();
-    async fn run(articleid: String, tags: Vec<String>) {
+    async fn run(articleid: String, tags: Vec<String>, userid: &str) {
         let (mongo_host, mongo_port) = load_mongo_credentials();
+        let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
-        if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
-            if !user.fake_articles.contains(&articleid.clone()) {
-                user.fake_articles.push(articleid.clone());
-                user_repo.clone().update(user).await;
-                if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
-                    news_repo.update(new).await;
-                }
+        if let Some(mut user) = user_repo.clone().find_one(userid).await {
+            if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
+                new.tags = tags.clone();
+                info!("trying the update {:?}", tags.clone());
+                news_repo.update(new).await;
             }
         }
     }
-    rt.block_on(run(articleid, tags.tags.clone()));
+    rt.block_on(run(articleid, tags.tags.clone(), tags.userid.as_str()));
     status::Accepted(Some("{'result':'ok'}".to_string()))
 }
 
@@ -178,7 +195,7 @@ pub fn fake(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
         if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
-            if !user.fake_articles.contains(&articleid.clone()) {
+            if !user.fake_articles.contains(&articleid) {
                 user.fake_articles.push(articleid.clone());
                 user_repo.clone().update(user).await;
                 if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
@@ -201,7 +218,7 @@ pub fn like(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<Str
         let user_repo = UserRepository::new(mongo_host.clone(), mongo_port.clone());
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
         if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
-            if !user.like_articles.contains(&articleid.clone()) {
+            if !user.like_articles.contains(&articleid) {
                 user.like_articles.push(articleid.clone());
                 user_repo.clone().update(user).await;
                 if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
@@ -230,7 +247,7 @@ pub fn approve(articleid: String, user_id: Json<UserIdDTO>) -> status::Accepted<
         let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
 
         if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
-            if !user.approved_articles.contains(&articleid.clone()) {
+            if !user.approved_articles.contains(&articleid) {
                 user.approved_articles.push(articleid.clone());
                 user_repo.clone().update(user).await;
                 if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {

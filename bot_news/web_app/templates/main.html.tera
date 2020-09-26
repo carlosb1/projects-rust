@@ -76,12 +76,12 @@
 		              </span>
                 <small class="text-muted"></small>
                 <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
-                    <input class="input-sm" type="text" value="{{ info['new.id']['tags'] }}" data-role="tagsinput" id="inputtags_{{ new.id }}" />
+                    <input class="input-sm" type="text" value="{{ tags[new.id] }}" data-role="tagsinput" id="inputtags_{{ new.id }}" />
                     <button id="button_tags_{{new.id}}" class="btn btn-primary btn-sm"><i class="fa fa-save" aria-hidden="true" onclick="save_tags('{{ new.id }}','{{user.id}}')"></i> </button>
 
-                    <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('{{ new.id }}','{{user.id}}')" {% if info['new.id']['star'] %} disabled {% endif %} ></i> </button>
-                    <button type="button" class="btn btn-success btn-sm" onclick="approve('{{ new.id }}','{{user.id}}')" {% if info['new.id']['approve'] %} disabled {% endif %} >Approved</button>
-                    <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '{{user.id}}')"  {% if info['new.id']['fake'] %} disabled {% endif %}>Fake</button>
+                    <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('{{ new.id }}','{{user.id}}')" {% if not info[new.id]['star'] %} disabled {% endif %} ></i> </button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="approve('{{ new.id }}','{{user.id}}')" {% if not info[new.id]['approve'] %} disabled {% endif %} >Approved</button>
+                    <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '{{user.id}}')"  {% if not info[new.id]['fake'] %} disabled {% endif %}>Fake</button>
                 </div>
               </a>
               {% if comments %}
@@ -100,7 +100,7 @@
                             
                             <div class="row comment">
                               <div class="head">
-                              <small><strong class='user'>{{ comment[0] }}</strong> not added date yet</small>
+                              <small><strong class='user'> {{ comment[0] }} </strong>  not added date yet  </small>
                               </div>
                               <p> {{ comment[2] }}</p>
                             </div>
