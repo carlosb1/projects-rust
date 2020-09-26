@@ -30,6 +30,7 @@ fn rocket() -> rocket::Rocket {
                 new::single_page_app,
                 new::main,
                 new::new_comment,
+                new::save_tags,
                 new::fake,
                 new::like,
                 new::approve,

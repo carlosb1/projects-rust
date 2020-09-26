@@ -11,6 +11,7 @@ pub struct News {
     pub approved: i64,
     pub liked: i64,
     pub fake: i64,
+    pub tags: Vec<String>,
 }
 impl News {
     pub fn new(
@@ -22,6 +23,7 @@ impl News {
         approved: i64,
         liked: i64,
         fake: i64,
+        tags: Vec<String>,
     ) -> News {
         News {
             id: id.to_string(),
@@ -32,6 +34,7 @@ impl News {
             approved: approved,
             liked: liked,
             fake: fake,
+            tags: tags,
         }
     }
 }

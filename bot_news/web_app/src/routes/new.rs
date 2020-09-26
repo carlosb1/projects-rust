@@ -23,6 +23,11 @@ pub struct CommentDTO {
     pub userid: String,
     pub comment: String,
 }
+#[derive(Deserialize, Clone)]
+pub struct TagDTO {
+    pub userid: String,
+    pub tags: Vec<String>,
+}
 
 #[derive(Deserialize, Clone)]
 pub struct UserIdDTO {
@@ -77,6 +82,7 @@ pub fn main() -> Template {
             .rev()
             .collect();
         let mut value_comments: Vec<Vec<Vec<String>>> = Vec::new();
+        let mut info: HashMap<_, _> = HashMap::new();
         for id_new in id_news.clone() {
             //vec of comment
             let comments_by_id = comment_repo
@@ -89,6 +95,9 @@ pub fn main() -> Template {
                 .rev()
                 .collect();
             value_comments.push(comments_by_id);
+            let mut values_info: HashMap<String, bool> = HashMap::new();
+            // values_info.insert("tags")
+            info.insert(id_new.clone())
         }
 
         let comments: HashMap<_, _> = id_news
@@ -134,6 +143,28 @@ pub fn new_comment(articleid: String, comment: Json<CommentDTO>) -> status::Acce
         comment.userid.clone(),
         comment.comment.clone(),
     ));
+    status::Accepted(Some("{'result':'ok'}".to_string()))
+}
+
+#[post("/<articleid>/save_tags", format = "application/json", data = "<tags>")]
+pub fn save_tags(articleid: String, tags: Json<TagDTO>) -> status::Accepted<String> {
+    info!("Loading add new tags");
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    async fn run(articleid: String, tags: Vec<String>) {
+        let (mongo_host, mongo_port) = load_mongo_credentials();
+        let news_repo = NewsRepository::new(mongo_host.clone(), mongo_port.clone());
+
+        if let Some(mut user) = user_repo.clone().find_one(userid.as_str()).await {
+            if !user.fake_articles.contains(&articleid.clone()) {
+                user.fake_articles.push(articleid.clone());
+                user_repo.clone().update(user).await;
+                if let Some(mut new) = news_repo.clone().find_one(articleid.as_str()).await {
+                    news_repo.update(new).await;
+                }
+            }
+        }
+    }
+    rt.block_on(run(articleid, tags.tags.clone()));
     status::Accepted(Some("{'result':'ok'}".to_string()))
 }
 

@@ -1,7 +1,6 @@
 use crate::entities::News;
 use futures::stream::StreamExt;
-use mongodb::bson::doc;
-use mongodb::bson::Array;
+use mongodb::bson::{doc, Array, Bson};
 use mongodb::{options::ClientOptions, options::FindOptions, Client};
 use rocket::request::{FromRequest, Outcome};
 use rocket::Outcome::Success;
@@ -27,7 +26,7 @@ impl NewsRepository {
         let client =
             Client::with_options(client_options).expect("It was not possible to set up options");
         let collection = client.database("db_news").collection("news");
-        let _update = doc! {"$set" : { "id": news.id.clone(), "link": news.link, "title": news.title, "descrip": news.descrip, "approved": news.approved, "liked": news.liked, "fake": news.fake}};
+        let _update = doc! {"$set" : { "id": news.id.clone(), "link": news.link, "title": news.title, "descrip": news.descrip, "approved": news.approved, "liked": news.liked, "fake": news.fake, "tags": news.tags}};
         let _filter = doc! {
             "id": news.id.clone()
         };
@@ -67,9 +66,25 @@ impl NewsRepository {
                     let liked = doc.get_i64("liked").unwrap_or(0);
                     let fake = doc.get_i64("fake").unwrap_or(0);
                     let data_ml = doc.get_array("data_ml").unwrap_or(&empty_array);
+                    let tags = doc
+                        .get_array("tags")
+                        .unwrap_or(&Vec::new())
+                        .into_iter()
+                        .map(Bson::from)
+                        .map(|x| x.as_str().unwrap().to_string())
+                        .collect::<Vec<String>>();
                     let cloned_data = data_ml.to_owned();
-                    let new =
-                        News::new(id, link, title, descrip, cloned_data, approved, liked, fake);
+                    let new = News::new(
+                        id,
+                        link,
+                        title,
+                        descrip,
+                        cloned_data,
+                        approved,
+                        liked,
+                        fake,
+                        tags,
+                    );
                     return Some(new);
                 }
                 Err(e) => println!("{}", e),
@@ -104,9 +119,25 @@ impl NewsRepository {
                     let liked = doc.get_i64("liked").unwrap_or(0);
                     let fake = doc.get_i64("fake").unwrap_or(0);
                     let data_ml = doc.get_array("data_ml").unwrap_or(&empty_array);
+                    let tags = doc
+                        .get_array("tags")
+                        .unwrap_or(&Vec::new())
+                        .into_iter()
+                        .map(Bson::from)
+                        .map(|x| x.as_str().unwrap().to_string())
+                        .collect::<Vec<String>>();
                     let cloned_data = data_ml.to_owned();
-                    let news =
-                        News::new(id, link, title, descrip, cloned_data, approved, liked, fake);
+                    let news = News::new(
+                        id,
+                        link,
+                        title,
+                        descrip,
+                        cloned_data,
+                        approved,
+                        liked,
+                        fake,
+                        tags,
+                    );
                     values.push(news.clone());
                 }
                 Err(e) => println!("{}", e),
