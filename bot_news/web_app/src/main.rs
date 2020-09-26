@@ -11,7 +11,6 @@ extern crate tera;
 mod db;
 mod entities;
 mod routes;
-mod utils;
 use crate::routes::{errors, new, static_files};
 
 // tera
@@ -36,6 +35,7 @@ fn rocket() -> rocket::Rocket {
                 new::like,
                 new::approve,
                 new::login,
+                new::search,
             ],
         )
         .register(catchers![errors::not_found])

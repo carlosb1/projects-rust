@@ -20,6 +20,49 @@ function save_tags(articleid, userid) {
 
 }
 
+function sanitizeHTMLEntities(str) {
+    if (str && typeof str === 'string') {
+        str = str.replace(/</g,"&lt;");
+        str = str.replace(/>/g,"&gt;");
+        str = str.replace(/&lt;em&gt;/g,"<em>");
+        str = str.replace(/&lt;\/em&gt;/g,"<\/em>");
+    }
+    return str;
+}
+
+
+function search() {
+    let baseUrl = "http://0.0.0.0:7700";
+    let index = "valueindex";
+    let theUrl = `${baseUrl}/indexes/${index}/search?q=${search.value}&attributesToHighlight=*`;
+    let lastRequest = undefined;
+    if (lastRequest) { lastRequest.abort() }
+    lastRequest = new XMLHttpRequest();
+    lastRequest.open("GET", theUrl, true);
+
+    if (localStorage.getItem('apiKey')) {
+      lastRequest.setRequestHeader("x-Meili-API-Key", localStorage.getItem('apiKey'));
+    }
+    lastRequest.onload = function (e) {
+        if (lastRequest.readyState === 4 && lastRequest.status === 200) {
+            let sanitizedResponseText = sanitizeHTMLEntities(lastRequest.responseText);
+            let httpResults = JSON.parse(sanitizedResponseText);
+            results.innerHTML = '';
+            let ids = httpResults.hits.map(({hit}) => hit.id);
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST","/search", true);
+            xhttp.setRequestHeader("Content-type", "application/json");
+            xhttp.send(JSON.stringify({"ids": ids}));
+        } else {
+            console.error(lastRequest.statusText);
+        }
+    };
+    lastRequest.send(null);
+
+}
+
+
+
 function login() {
     console.log('Apply login');
     let username = $("#username").val();
