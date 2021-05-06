@@ -6,7 +6,7 @@
 Flask == 1.0.2
 
 # app.py: 3
-Flask_Cors == 3.0.7
+Flask_Cors == 3.0.9
 
 # app.py: 11
 celery == 4.3.0
