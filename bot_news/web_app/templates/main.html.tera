@@ -9,7 +9,6 @@
         <title>Rust example recommendations</title>
       	<link rel="stylesheet" href="/static/node_modules/bootstrap/dist/css/bootstrap.min.css">
         <link rel="stylesheet" href="/static/node_modules/font-awesome/css/font-awesome.min.css">
-      	<script src="/static/node_modules/axios/dist/axios.min.js"> </script>
       	<script src="/static/node_modules/jquery/dist/jquery.min.js"> </script>
        	<script src="/static/node_modules/bootstrap/dist/js/bootstrap.min.js">  </script>
        	<script src="/static/node_modules/bootstrap-tagsinput/dist/bootstrap-tagsinput.min.js">  </script>
@@ -22,6 +21,7 @@
         color: #85144B ;
         background-color: #AAAAAA ;
         font-weight: bold;
+        font-size: small;
 
       };
 
@@ -38,6 +38,12 @@
       <li class="nav-item">
       <a href="/" class="nav-link">Your recommendations</a>
     </li>
+    <div class="form-inline">
+      <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+      <button class="btn btn-outline-success my-2 my-sm-0" onclick="search()">Search</button>
+    </div>
+
+
     <!--
     <li class="nav-item">
       <a href="/Trending" class="nav-link">Trending</a>
@@ -50,13 +56,12 @@
       <div class="input-group-prepend">
         <span class="input-group-text" id="basic-addon1">@</span>
       </div>
-      <input type="text" class="form-control" placeholder="Username" aria-label="Username" aria-describedby="basic-addon1">
-       <input type="password" class="form-control" placeholder="Password" aria-label="Password" aria-describedby="basic-addon1">
+      <input type="text" class="form-control" placeholder="Username" aria-label="Username" id="username" aria-describedby="basic-addon1">
+       <input type="password" class="form-control" placeholder="Password" aria-label="Password" id="password" aria-describedby="basic-addon1">
     </div>
   </form>
-
         <ul class="navbar-nav">
-          <li class="nav-item" ><a href="/login"  class="nav-link"  ><i class="fa fa-user fa-2x" aria-hidden="true"></i></a></li>
+          <li class="nav-item" ><a onclick="login()"  class="nav-link"  ><i class="fa fa-user fa-2x" aria-hidden="true"></i></a></li>
         </ul>
       </div>
   </nav>
@@ -65,49 +70,55 @@
       <h1 class="display-3"> News </h1>
 
       <div class="list-group list-group-flush border rounded">
-              <a
-                  class="list-group-item list-group-item-action"
-                  >
-                  <strong class="mr-2" data-toggle="collapse" href="#collapseComment" role="button" aria-expanded="false" aria-controls="collapseComment">id</strong>
-                  <span>name </span>
-                  <small class="text-muted">internal id</small>
-                      <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
-                      <input class="input-sm" type="text" value="" data-role="tagsinput" />
-                      <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('1','2')"></i> </button>
-                      <button type="button" class="btn btn-success btn-sm" onclick="approve('1','2')">Approved</button>
-                      <button type="button" class="btn btn-danger  btn-sm" onclick="fake('1', '2')">Fake</button>
-                    </div>
-              </a>
-              <div class="collapse" id="collapseComment">
-              <div class="card card-body">
-  <div class="post-comments">
+          {% for new in news %}
 
-    <form>
-      <div class="form-group">
-        <label for="comment" class="float-left">Your Comment</label>
-        <textarea name="comment" class="form-control" rows="3"></textarea>
-      </div>
-      <div>
-      <hr>
-      <div class="row comment">
-        <div class="head">
-        <small><strong class='user'>Diablo25</strong> 30.10.2017 12:13</small>
-        </div>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non lorem elementum, accumsan magna sed, faucibus mauris. Nulla pellentesque ante nibh, ac hendrerit ante fermentum sed. Nunc in libero dictum, porta nibh pellentesque, ultrices dolor. Curabitur nunc ipsum, blandit vel aliquam id, aliquam vel velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed sit amet mi dignissim, pretium justo non, lacinia libero. Nulla facilisi. Donec id sem velit. </p>
-      </div>
-      <div class="row comment">
-        <div class="head">
-          <small><strong class='user'>Giesche</strong> 30.10.2017 12:13</small>
-          </div>
-          <p>Praesent molestie ante nec metus convallis aliquam. Ut aliquam tincidunt mollis. Maecenas et ex sit amet est vehicula ultrices sed sit amet elit. Suspendisse potenti. Aenean et quam ut purus convallis porttitor. Mauris porttitor pretium elementum. Duis blandit elit tincidunt ipsum ultricies, ut faucibus lorem facilisis. Proin ipsum turpis, pharetra in lorem ac, porta ullamcorper velit. Proin gravida odio eget elit ultricies sodales. Vivamus vel tincidunt ligula. Proin pulvinar pellentesque velit eget luctus. Aliquam vitae enim ut purus vestibulum sollicitudin sit amet eget lacus. Nunc tempus fringilla tincidunt. </p>
-          </div>
-      </div>
-      <button class="btn  btn-outline-info float-left m-2" onclick="new_comment("comment1')">Send</button>
-    </form>
-     </div>
+              <a class="list-group-item list-group-item-action">                 
+                  <small> <strong class="mr-2" data-toggle="collapse" href="#collapseComment" role="button" aria-expanded="false" aria-controls="collapseComment"> {{ new.id }} </strong> </small>
+                  <span onclick="window.location.href='{{ new.link }}';">                   
+                      <small div="title_{{ new.id }}"  class="text-muted">
+                        {{ new.title }}
+                      </small>
+		              </span>
+                <small class="text-muted"></small>
+                <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
+                    <input class="input-sm" type="text" value="{{ tags[new.id] }}" data-role="tagsinput" id="inputtags_{{ new.id }}" />
+                    <button id="button_tags_{{new.id}}" class="btn btn-primary btn-sm"><i class="fa fa-save" aria-hidden="true" onclick="save_tags('{{ new.id }}','{{user.id}}')"></i> </button>
+
+                    <button class="btn btn-warning btn-sm"><i class="fa fa-star" aria-hidden="true" onclick="like('{{ new.id }}','{{user.id}}')" {% if not info[new.id]['star'] %} disabled {% endif %} ></i> </button>
+                    <button type="button" class="btn btn-success btn-sm" onclick="approve('{{ new.id }}','{{user.id}}')" {% if not info[new.id]['approve'] %} disabled {% endif %} >Approved</button>
+                    <button type="button" class="btn btn-danger  btn-sm" onclick="fake('{{ new.id }}', '{{user.id}}')"  {% if not info[new.id]['fake'] %} disabled {% endif %}>Fake</button>
                 </div>
-            </div>
-
+              </a>
+              {% if comments %}
+              
+              <div class="collapse" id="collapseComment">
+                <div class="card card-body">
+                  <div class="post-comments">
+                          <form id="form_{{new.id}}">
+                            <div class="form-group">
+                              <label for="comment" class="float-left">Your Comment</label>
+                              <textarea name="comment" class="form-control" rows="3" id="textarea_comment_{{ new.id }}"></textarea>
+                            </div>
+                            <div>
+                            <hr>
+                            {% for comment in comments[new.id] %}
+                            
+                            <div class="row comment">
+                              <div class="head">
+                              <small><strong class='user'> {{ comment[0] }} </strong>  not added date yet  </small>
+                              </div>
+                              <p> {{ comment[2] }}</p>
+                            </div>
+                            {% endfor %}
+                            <button class="btn  btn-outline-info float-left m-2" onclick="new_comment('{{ new.id }}','{{user.id}}')">Send</button>
+                          </form>
+                      </div>
+                  </div>
+              </div>
+              
+              {% endif %}
+ 
+          {% endfor %}
       </div>
     </div>
     </body>
