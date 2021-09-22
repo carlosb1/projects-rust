@@ -14,6 +14,24 @@ struct ThreadContext {
     rsp: u64,
 }
 
+pub struct Runtime {
+    threads: Vec<Thread>,
+    current: usize,
+}
+
+#[derive(PartialEq, Eq, Debug)]
+enum State {
+    Available,
+    Running,
+    Ready,
+}
+struct Thread {
+    id: usize,
+    stack: Vec<u8>,
+    ctx: ThreadContext,
+    state: State,
+}
+
 fn hello() -> ! {
     println!("I LOVE WAKING UP ON A NEW STACK!");
     loop {}
