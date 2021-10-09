@@ -37,6 +37,16 @@ struct Thread {
     ctx: ThreadContext,
     state: State,
 }
+impl Thread {
+    fn new(id: usize) -> Self {
+        Thread {
+            id,
+            stack: vec![0_u8; DEFAULT_STACK_SIZE],
+            ctx: ThreadContext::default(),
+            state: State::Available,
+        }
+    }
+}
 
 fn hello() -> ! {
     println!("I LOVE WAKING UP ON A NEW STACK!");
