@@ -12,6 +12,12 @@ const SSIZE: isize = 48;
 #[repr(C)]
 struct ThreadContext {
     rsp: u64,
+    r15: u64,
+    r14: u64,
+    r13: u64,
+    r12: u64,
+    rbx: u64,
+    rbp: u64,
 }
 
 pub struct Runtime {
