@@ -122,7 +122,46 @@ impl Runtime {
         self.threads.len() > 0
     }
 
-    fn switch(&mut self) {}
+    fn guard() {
+        unsafe {
+            let r_ptr = RUNTIME as *mut Runtime;
+            (*r_ptr).t_return();
+        };
+    }
+
+    #[naked]
+    fn skip() {}
+
+    pub fn yield_thread() {
+        unsafe {
+            let rt_ptr = RUNTIME as *mut Runtime;
+            (*rt_ptr).t_yield();
+        }
+    }
+
+    #[naked]
+    #[inline(never)]
+    unsafe fn switch() {
+        llvm_asm!(
+            "
+            mov %rsp, 0x00(%rdi)
+            mov %r15, 0x08(%rdi)
+            mov %r14, 0x10(%rdi)
+            mov %r13, 0x18(%rdi)
+            mov %r12, 0x20(%rdi)
+            mov %rbx, 0x28(%rdi)
+            mov %rbp, 0x30(%rdi)
+
+            mov 0x00(%rsi),  %rsp
+            mov 0x08(%rsi),  %r15
+            mov 0x10(%rsi),  %r14
+            mov 0x18(%rsi),  %r13
+            mov 0x20(%rsi),  %r12
+            mov 0x28(%rsi),  %rbx
+            mov 0x30(%rsi),  %rbp
+            "
+        );
+    }
 
     pub fn spawn(&mut self, f: fn()) {
         let available = self
@@ -160,8 +199,31 @@ unsafe fn gt_switch(new: *const ThreadContext) {
     : "alignstack" // it will work without this now, will need it later
     );
 }
-
 fn main() {
+    let mut runtime = Runtime::new();
+    runtime.init();
+    runtime.spawn(|| {
+        println!("THREAD 1 STARTING");
+        let id = 1;
+        for i in 0..10 {
+            println!("thread: {} counter: {}", id, i);
+            yield_thread();
+        }
+        println!("THREAD 1 FINISHED");
+    });
+    runtime.spawn(|| {
+        println!("THREAD 2 STARTING");
+        let id = 2;
+        for i in 0..15 {
+            println!("thread: {} counter: {}", id, i);
+            yield_thread();
+        }
+        println!("THREAD 2 FINISHED");
+    });
+    runtime.run();
+}
+
+fn main2() {
     let mut ctx = ThreadContext::default();
     let mut stack = vec![0_u8; SSIZE as usize];
     unsafe {
