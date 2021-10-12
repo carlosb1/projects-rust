@@ -122,47 +122,6 @@ impl Runtime {
         self.threads.len() > 0
     }
 
-    fn guard() {
-        unsafe {
-            let r_ptr = RUNTIME as *mut Runtime;
-            (*r_ptr).t_return();
-        };
-    }
-
-    #[naked]
-    fn skip() {}
-
-    pub fn yield_thread() {
-        unsafe {
-            let rt_ptr = RUNTIME as *mut Runtime;
-            (*rt_ptr).t_yield();
-        }
-    }
-
-    #[naked]
-    #[inline(never)]
-    unsafe fn switch() {
-        llvm_asm!(
-            "
-            mov %rsp, 0x00(%rdi)
-            mov %r15, 0x08(%rdi)
-            mov %r14, 0x10(%rdi)
-            mov %r13, 0x18(%rdi)
-            mov %r12, 0x20(%rdi)
-            mov %rbx, 0x28(%rdi)
-            mov %rbp, 0x30(%rdi)
-
-            mov 0x00(%rsi),  %rsp
-            mov 0x08(%rsi),  %r15
-            mov 0x10(%rsi),  %r14
-            mov 0x18(%rsi),  %r13
-            mov 0x20(%rsi),  %r12
-            mov 0x28(%rsi),  %rbx
-            mov 0x30(%rsi),  %rbp
-            "
-        );
-    }
-
     pub fn spawn(&mut self, f: fn()) {
         let available = self
             .threads
@@ -180,6 +139,46 @@ impl Runtime {
         }
         available.state = State::Ready;
     }
+}
+fn guard() {
+    unsafe {
+        let r_ptr = RUNTIME as *mut Runtime;
+        (*r_ptr).t_return();
+    };
+}
+
+#[naked]
+fn skip() {}
+
+pub fn yield_thread() {
+    unsafe {
+        let rt_ptr = RUNTIME as *mut Runtime;
+        (*rt_ptr).t_yield();
+    }
+}
+
+#[naked]
+#[inline(never)]
+unsafe fn switch() {
+    llvm_asm!(
+        "
+            mov %rsp, 0x00(%rdi)
+            mov %r15, 0x08(%rdi)
+            mov %r14, 0x10(%rdi)
+            mov %r13, 0x18(%rdi)
+            mov %r12, 0x20(%rdi)
+            mov %rbx, 0x28(%rdi)
+            mov %rbp, 0x30(%rdi)
+
+            mov 0x00(%rsi),  %rsp
+            mov 0x08(%rsi),  %r15
+            mov 0x10(%rsi),  %r14
+            mov 0x18(%rsi),  %r13
+            mov 0x20(%rsi),  %r12
+            mov 0x28(%rsi),  %rbx
+            mov 0x30(%rsi),  %rbp
+            "
+    );
 }
 
 fn hello() -> ! {
