@@ -1,3 +1,15 @@
+extern crate clap;
+extern crate colored;
+extern crate fstream;
+extern crate regex;
+extern crate walkdir;
+
+use clap::{Clap, IntoApp};
+use clap_generate::{generate, generators::*};
+use colored::*;
+use regex::Regex;
+use std::path::Path;
+use walkdir::WalkDir;
 fn check_dir(path: &str, query: &str) {
     let mut total_files_scanned = 0;
     for (fl_no, e) in WalkDir::new(path)
