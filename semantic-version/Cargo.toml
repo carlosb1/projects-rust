@@ -10,5 +10,5 @@ fstream = "0.1.2"
 walkdir = "2.3.1"
 argparse = "0.2.2"
 colored = "1.9"
-clap = "2.34.0"
+clap = {version="3.0.0-rc.7", features=["derive"]}
 regex = "1.5.4"

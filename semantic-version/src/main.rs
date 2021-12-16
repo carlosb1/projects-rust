@@ -1,15 +1,20 @@
-extern crate clap;
-extern crate colored;
-extern crate fstream;
-extern crate regex;
-extern crate walkdir;
-
-use clap::{Clap, IntoApp};
-use clap_generate::{generate, generators::*};
+use clap::Parser;
 use colored::*;
-use regex::Regex;
 use std::path::Path;
 use walkdir::WalkDir;
+
+#[derive(Parser, Debug)]
+#[clap(about, version, author)]
+struct Args {
+    /// Path string
+    #[clap(short, long)]
+    path: String,
+
+    /// Query string
+    #[clap(short, long)]
+    query: String,
+}
+
 fn check_dir(path: &str, query: &str) {
     let mut total_files_scanned = 0;
     for (fl_no, e) in WalkDir::new(path)
@@ -57,18 +62,9 @@ fn check_file(file_path: &Path, query: &str) {
 }
 
 fn main() {
-    let mut path = ".".to_string();
-    let mut query = "query".to_string();
-    {
-        let mut ap = ArgumentParser::new();
-        ap.set_description("Recursive string locater in files");
-        ap.refer(&mut path)
-            .add_option(&["-p", "--path"], Store, "Path to folder");
-        ap.refer(&mut query)
-            .add_option(&["-q", "--query"], Store, "Query string to find")
-            .required();
-        ap.parse_args_or_exit();
-    }
+    let cli = Args::parse();
+    let path = cli.path;
+    let query = cli.query;
     println!(
         "Searching '{}' in {}\n",
         query.green().bold(),
