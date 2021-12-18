@@ -15,18 +15,26 @@ struct Args {
     query: String,
 }
 
+pub struct FoundEntry<'a> {
+    path: &'a Path,
+    pos: usize,
+}
+
 fn check_dir(path: &str, query: &str) {
     let mut total_files_scanned = 0;
+
+    let mut entries = Vec::new();
     for (fl_no, e) in WalkDir::new(path)
         .into_iter()
         .filter_map(|e| e.ok())
         .enumerate()
     {
+        let cloned_e = e.clone();
         if e.metadata().unwrap().is_file() {
             match fstream::contains(e.path(), query) {
                 Some(b) => {
                     if b {
-                        check_file(e.path(), query);
+                        entries.append(&mut check_file(cloned_e.path(), query));
                     }
                 }
                 None => println!("Error in walking Dir"),
@@ -41,11 +49,12 @@ fn check_dir(path: &str, query: &str) {
     );
 }
 
-fn check_file(file_path: &Path, query: &str) {
+fn check_file<'a>(file_path: &'a Path, query: &str) -> Vec<FoundEntry<'a>> {
     println!(
         "In file {}\n",
         file_path.display().to_string().magenta().italic()
     );
+    let mut entries = Vec::new();
     match fstream::read_lines(file_path) {
         Some(s) => {
             for (pos, s) in s.iter().enumerate() {
@@ -53,12 +62,19 @@ fn check_file(file_path: &Path, query: &str) {
                     print!("{}", "Line ".green().bold());
                     print!("{0: <6} ", pos.to_string().cyan());
                     println!("=> {}", s.trim().blue());
+                    let found_entry = FoundEntry {
+                        path: file_path,
+                        pos,
+                    };
+                    entries.push(found_entry);
                 }
             }
         }
         None => println!("Error in reading File"),
     }
+
     println!("");
+    entries
 }
 
 fn main() {
@@ -70,5 +86,5 @@ fn main() {
         query.green().bold(),
         path.italic()
     );
-    check_dir(&path, &query);
+    let found_entries = check_dir(&path, &query);
 }
