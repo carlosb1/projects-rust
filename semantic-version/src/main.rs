@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::*;
+use glob::glob;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
@@ -19,6 +20,20 @@ struct Args {
 pub struct FoundEntry {
     path: PathBuf,
     pos: usize,
+    s: String,
+}
+fn check_dirs(path: &str, query: &str) -> Vec<FoundEntry> {
+    let mut entries = Vec::new();
+    for entry in glob(path).expect("Failed to read glob pattern") {
+        match entry {
+            Ok(path) => {
+                println!("!!!!!!!!!!!!!{:?}", path);
+                entries.append(&mut check_file(path, query));
+            }
+            Err(e) => println!("{:?}", e),
+        }
+    }
+    entries
 }
 
 fn check_dir(path: &str, query: &str) -> Vec<FoundEntry> {
@@ -34,7 +49,7 @@ fn check_dir(path: &str, query: &str) -> Vec<FoundEntry> {
             match fstream::contains(e.path(), query) {
                 Some(b) => {
                     if b {
-                        entries.append(&mut check_file(e.path(), query));
+                        entries.append(&mut check_file(PathBuf::from(e.path()), query));
                     }
                 }
                 None => println!("Error in walking Dir"),
@@ -50,22 +65,20 @@ fn check_dir(path: &str, query: &str) -> Vec<FoundEntry> {
     entries
 }
 
-fn check_file(file_path: &Path, query: &str) -> Vec<FoundEntry> {
+fn check_file(path: PathBuf, query: &str) -> Vec<FoundEntry> {
     println!(
         "In file {}\n",
-        file_path.display().to_string().magenta().italic()
+        path.display().to_string().magenta().italic()
     );
     let mut entries = Vec::new();
-    match fstream::read_lines(file_path) {
+    match fstream::read_lines(path.clone()) {
         Some(s) => {
             for (pos, s) in s.iter().enumerate() {
                 if s.contains(query) {
-                    print!("{}", "Line ".green().bold());
-                    print!("{0: <6} ", pos.to_string().cyan());
-                    println!("=> {}", s.trim().blue());
                     let found_entry = FoundEntry {
-                        path: PathBuf::from(file_path),
+                        path: path.clone(),
                         pos,
+                        s: s.clone(),
                     };
                     entries.push(found_entry);
                 }
@@ -87,9 +100,17 @@ fn main() {
         query.green().bold(),
         path.italic()
     );
-    let found_entries = check_dir(&path, &query);
+    let first_entries = check_dirs(&path, &query);
+    first_entries.iter().for_each(|entry| {
+        print!("1/ {}", "Line ".green().bold());
+        print!("1/ {0: <6} ", entry.pos.to_string().cyan());
+        println!("1/ => {}", entry.s.trim().blue());
+    });
 
-    for entry in found_entries.iter() {
-        println! {"{:?}", entry}
-    }
+    let found_entries = check_dir(&path, &query);
+    found_entries.iter().for_each(|entry| {
+        print!("{}", "Line ".green().bold());
+        print!("{0: <6} ", entry.pos.to_string().cyan());
+        println!("=> {}", entry.s.trim().blue());
+    });
 }
