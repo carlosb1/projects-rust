@@ -1,6 +1,6 @@
 use clap::Parser;
 use colored::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
@@ -15,12 +15,13 @@ struct Args {
     query: String,
 }
 
-pub struct FoundEntry<'a> {
-    path: &'a Path,
+#[derive(Debug)]
+pub struct FoundEntry {
+    path: PathBuf,
     pos: usize,
 }
 
-fn check_dir(path: &str, query: &str) {
+fn check_dir(path: &str, query: &str) -> Vec<FoundEntry> {
     let mut total_files_scanned = 0;
 
     let mut entries = Vec::new();
@@ -29,12 +30,11 @@ fn check_dir(path: &str, query: &str) {
         .filter_map(|e| e.ok())
         .enumerate()
     {
-        let cloned_e = e.clone();
         if e.metadata().unwrap().is_file() {
             match fstream::contains(e.path(), query) {
                 Some(b) => {
                     if b {
-                        entries.append(&mut check_file(cloned_e.path(), query));
+                        entries.append(&mut check_file(e.path(), query));
                     }
                 }
                 None => println!("Error in walking Dir"),
@@ -47,9 +47,10 @@ fn check_dir(path: &str, query: &str) {
         "Total Scanned files {}",
         total_files_scanned.to_string().bold()
     );
+    entries
 }
 
-fn check_file<'a>(file_path: &'a Path, query: &str) -> Vec<FoundEntry<'a>> {
+fn check_file(file_path: &Path, query: &str) -> Vec<FoundEntry> {
     println!(
         "In file {}\n",
         file_path.display().to_string().magenta().italic()
@@ -63,7 +64,7 @@ fn check_file<'a>(file_path: &'a Path, query: &str) -> Vec<FoundEntry<'a>> {
                     print!("{0: <6} ", pos.to_string().cyan());
                     println!("=> {}", s.trim().blue());
                     let found_entry = FoundEntry {
-                        path: file_path,
+                        path: PathBuf::from(file_path),
                         pos,
                     };
                     entries.push(found_entry);
@@ -87,4 +88,8 @@ fn main() {
         path.italic()
     );
     let found_entries = check_dir(&path, &query);
+
+    for entry in found_entries.iter() {
+        println! {"{:?}", entry}
+    }
 }
