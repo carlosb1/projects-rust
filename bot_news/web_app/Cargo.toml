@@ -5,7 +5,7 @@ authors = ["Carlos B <mcflurry0@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-rocket = "0.4.0"
+rocket = "0.4.7"
 tera = "0.11.20"
 tokio = {version = "0.2.*", features=["full"]}
 futures = "0.3.4"
