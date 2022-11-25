@@ -1,4 +1,3 @@
-mod client;
 mod message;
 
 pub fn main() {

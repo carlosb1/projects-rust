@@ -19,12 +19,8 @@ log="0.4"
 
 [lib]
 name = "tracker"
-path = "lib.rs"
-
-[[client]]
-name="client"
-path="client.rs"
+path = "src/lib.rs"
 
 [[bin]]
 name="main"
-path="main.rs"
+path="src/main.rs"

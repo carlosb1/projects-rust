@@ -1,12 +1,13 @@
 mod client;
 mod message;
+
 #[macro_use]
 extern crate serde_derive;
 
+use crate::message::{JSONMessage, Message};
 use bytes::BytesMut;
 use futures::{SinkExt, StreamExt};
 use log::{error, info};
-use message::{JSONMessage, Message};
 use std::error::Error;
 use std::io;
 use std::net::SocketAddr;
