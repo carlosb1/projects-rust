@@ -9,6 +9,7 @@ use crate::message::{JSONMessage, Message};
 use bytes::BytesMut;
 use futures::{SinkExt, StreamExt};
 use log::{error, info};
+use std::collections::HashMap;
 use std::error::Error;
 use std::io;
 use std::net::SocketAddr;
@@ -50,29 +51,27 @@ impl Encoder<Vec<u8>> for MyBytesCodec {
 }
 /// Trait for replies. it includes trigger functions for each type of message.
 pub trait MessageReplier: Send + Sync {
-    fn no_oper(self: Box<Self>, messg: &Message);
+    fn run(self: Box<Self>, messg: &Message);
     fn box_clone(&self) -> Box<dyn MessageReplier>;
 }
 
 /// Dispatcher class for each type of responses.
+#[derive(Clone)]
 pub struct MessageManager {
-    replier: Box<dyn MessageReplier>,
+    replier: HashMap<String, Box<dyn MessageReplier>>,
 }
 
 impl MessageManager {
     fn new(replier: Box<dyn MessageReplier>) -> MessageManager {
-        MessageManager { replier }
+        MessageManager {
+            replier: HashMap::new(),
+        }
     }
     fn exec(self, str_messg: String) -> Option<Box<Message>> {
         let messg: Message =
             serde_json::from_str(&str_messg).expect("It was not parsed json message to string");
         let oper = messg.operation.as_str();
-        match oper {
-            _ => {
-                self.replier.no_oper(&messg);
-                None
-            }
-        }
+        self.replier.get(oper).run(messg);
     }
 }
 
@@ -85,7 +84,7 @@ impl Server {
         self,
         address: String,
         user: String,
-        replier: Arc<Mutex<Box<dyn MessageReplier>>>,
+        manager: Arc<Mutex<Box<MessageManager>>>,
     ) -> Result<(), Box<dyn Error>> {
         info!("Trying to connect to {}", address);
 
@@ -93,7 +92,6 @@ impl Server {
 
         let listener = TcpListener::bind(&addr).await?;
         loop {
-            let replier = replier.clone();
             let user = user.clone();
             let address = address.clone();
 
@@ -109,13 +107,12 @@ impl Server {
                         Ok(message) => {
                             let mut response_message = Box::new(Message::new_user(user, address));
                             let _ = {
-                                let _repl = replier
+                                let _manager = manager
                                     .lock()
-                                    .expect("It was not possible to unlock shared replier message");
-                                let _manager = MessageManager::new((*_repl).box_clone());
+                                    .expect("It was not possible to unlock shared message manager");
                                 let str_message = String::from_utf8(message)
                                     .expect("It was not possible to parse message to a string");
-                                match _manager.exec(str_message) {
+                                match _manager.clone().exec(str_message) {
                                     Some(response) => response_message = response,
                                     None => {
                                         info!("It is not necessary to reply the message")
