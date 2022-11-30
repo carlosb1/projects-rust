@@ -51,7 +51,7 @@ impl Encoder<Vec<u8>> for MyBytesCodec {
 }
 /// Trait for replies. it includes trigger functions for each type of message.
 pub trait MessageReplier: Send + Sync {
-    fn run(self: Box<Self>, messg: &Message);
+    fn run(self: Box<Self>, messg: Message) -> Option<Message>;
     fn box_clone(&self) -> Box<dyn MessageReplier>;
 }
 
@@ -67,11 +67,11 @@ impl MessageManager {
             replier: HashMap::new(),
         }
     }
-    fn exec(self, str_messg: String) -> Option<Box<Message>> {
+    fn exec(self, str_messg: String) -> Option<Message> {
         let messg: Message =
             serde_json::from_str(&str_messg).expect("It was not parsed json message to string");
         let oper = messg.operation.as_str();
-        self.replier.get(oper).run(messg);
+        self.replier.get(oper).map_or(None, |repl| repl.run(messg))
     }
 }
 
@@ -105,31 +105,30 @@ impl Server {
                 if let Some(frame) = framed_reader.next().await {
                     match frame {
                         Ok(message) => {
-                            let mut response_message = Box::new(Message::new_user(user, address));
-                            let _ = {
-                                let _manager = manager
-                                    .lock()
-                                    .expect("It was not possible to unlock shared message manager");
-                                let str_message = String::from_utf8(message)
-                                    .expect("It was not possible to parse message to a string");
-                                match _manager.clone().exec(str_message) {
-                                    Some(response) => response_message = response,
-                                    None => {
-                                        info!("It is not necessary to reply the message")
-                                    }
-                                };
-                            };
-                            framed_writer
-                                .send(
-                                    response_message
-                                        .to_json()
-                                        .expect("Error parsing json message")
-                                        .as_bytes()
-                                        .to_vec(),
-                                )
-                                .await
-                                .map_err(|e| println!("not response! {}", e))
-                                .ok();
+                            let _manager = manager
+                                .lock()
+                                .expect("It was not possible to unlock shared message manager");
+                            let str_message = String::from_utf8(message)
+                                .expect("It was not possible to parse message to a string");
+
+                            match _manager.clone().exec(str_message) {
+                                None => {
+                                    info!("It is no necessary response for: {:?}", str_message);
+                                }
+                                Some(response) => {
+                                    framed_writer
+                                        .send(
+                                            response
+                                                .to_json()
+                                                .expect("Error parsing json message")
+                                                .as_bytes()
+                                                .to_vec(),
+                                        )
+                                        .await
+                                        .map_err(|e| println!("not response! {}", e))
+                                        .ok();
+                                }
+                            }
                         }
                         Err(e) => {
                             error!("Error received while we are reading {}", e);
