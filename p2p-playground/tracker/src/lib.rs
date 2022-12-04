@@ -115,34 +115,10 @@ impl Server {
 
                             let mut _manager = _manager.lock().unwrap();
                             let resp = _manager.exec(str_message.clone());
-                            match resp {
-                                None => {
-                                    info!("It is no necessary response {:?}", str_message.clone());
-                                }
-                                Some(response) => {
-                                    framed_writer.send("aa".to_string().as_bytes().to_vec())
-                                }
-                            }
-                            /*
-                            match resp {
-                                None => {
-                                    info!("It is no necessary response for: {:?}", str_message);
-                                }
-                                Some(response) => {
-                                    framed_writer
-                                        .send(
-                                            response
-                                                .to_json()
-                                                .expect("Error parsing json message")
-                                                .as_bytes()
-                                                .to_vec(),
-                                        )
-                                        .await
-                                        .map_err(|e| println!("not response! {}", e))
-                                        .ok();
-                                }
-                            }
-                            */
+                            let unwrapped_resp =
+                                resp.unwrap_or_default().to_json().unwrap().into_bytes();
+                            let _ = framed_writer.send(unwrapped_resp);
+                            //TODO it is not necessary to verify the response
                         }
                         Err(e) => {
                             error!("Error received while we are reading {}", e);
