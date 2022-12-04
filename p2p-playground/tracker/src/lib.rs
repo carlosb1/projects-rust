@@ -7,13 +7,16 @@ extern crate serde_derive;
 
 use crate::message::{JSONMessage, Message};
 use bytes::BytesMut;
+use dyn_clone::DynClone;
 use futures::{SinkExt, StreamExt};
 use log::{error, info};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::Mutex;
+//use futures::lock::Mutex;
 use tokio::net::TcpListener;
 use tokio_util::codec::{Decoder, Encoder};
 use tokio_util::codec::{FramedRead, FramedWrite};
@@ -50,10 +53,11 @@ impl Encoder<Vec<u8>> for MyBytesCodec {
     }
 }
 /// Trait for replies. it includes trigger functions for each type of message.
-pub trait MessageReplier: Send + Sync {
+pub trait MessageReplier: DynClone {
     fn run(self: Box<Self>, messg: Message) -> Option<Message>;
-    fn box_clone(&self) -> Box<dyn MessageReplier>;
 }
+
+dyn_clone::clone_trait_object!(MessageReplier);
 
 /// Dispatcher class for each type of responses.
 #[derive(Clone)]
@@ -62,18 +66,22 @@ pub struct MessageManager {
 }
 
 impl MessageManager {
-    fn new(replier: Box<dyn MessageReplier>) -> MessageManager {
+    fn new() -> MessageManager {
         MessageManager {
             replier: HashMap::new(),
         }
     }
-    fn exec(self, str_messg: String) -> Option<Message> {
+    fn exec(&mut self, str_messg: String) -> Option<Message> {
         let messg: Message =
             serde_json::from_str(&str_messg).expect("It was not parsed json message to string");
         let oper = messg.operation.as_str();
-        self.replier.get(oper).map_or(None, |repl| repl.run(messg))
+        self.replier
+            .get(oper)
+            .map_or(None, |repl| repl.clone().run(messg))
     }
 }
+unsafe impl Send for MessageManager {}
+unsafe impl Sync for MessageManager {}
 
 /// Server TCP implementation for tokio.
 #[derive(Clone)]
@@ -83,18 +91,15 @@ impl Server {
     pub async fn run(
         self,
         address: String,
-        user: String,
+        _user: String,
         manager: Arc<Mutex<Box<MessageManager>>>,
     ) -> Result<(), Box<dyn Error>> {
         info!("Trying to connect to {}", address);
 
         let addr = address.as_str().parse::<SocketAddr>()?;
-
         let listener = TcpListener::bind(&addr).await?;
         loop {
-            let user = user.clone();
-            let address = address.clone();
-
+            let _manager = manager.clone();
             info!("Wait for a new socket...");
             let (mut socket, _) = listener.accept().await?;
             tokio::spawn(async move {
@@ -105,13 +110,21 @@ impl Server {
                 if let Some(frame) = framed_reader.next().await {
                     match frame {
                         Ok(message) => {
-                            let _manager = manager
-                                .lock()
-                                .expect("It was not possible to unlock shared message manager");
                             let str_message = String::from_utf8(message)
                                 .expect("It was not possible to parse message to a string");
 
-                            match _manager.clone().exec(str_message) {
+                            let mut _manager = _manager.lock().unwrap();
+                            let resp = _manager.exec(str_message.clone());
+                            match resp {
+                                None => {
+                                    info!("It is no necessary response {:?}", str_message.clone());
+                                }
+                                Some(response) => {
+                                    framed_writer.send("aa".to_string().as_bytes().to_vec())
+                                }
+                            }
+                            /*
+                            match resp {
                                 None => {
                                     info!("It is no necessary response for: {:?}", str_message);
                                 }
@@ -129,6 +142,7 @@ impl Server {
                                         .ok();
                                 }
                             }
+                            */
                         }
                         Err(e) => {
                             error!("Error received while we are reading {}", e);

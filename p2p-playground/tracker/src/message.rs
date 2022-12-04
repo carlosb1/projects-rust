@@ -8,7 +8,7 @@ pub trait JSONMessage {
 }
 
 /// Message class for messages. It is serialize in a json message.
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Message {
     pub operation: String,
     pub topic: String,
