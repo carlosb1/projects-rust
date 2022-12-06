@@ -1,5 +1,5 @@
-use crate::message::Message;
-use crate::MyBytesCodec;
+use crate::domain::Message;
+use crate::entrypoint::MyBytesCodec;
 use futures::{SinkExt, StreamExt};
 use log::{error, info};
 use std::error::Error;
@@ -7,6 +7,21 @@ use std::io::ErrorKind;
 use std::net::SocketAddr;
 use tokio::net::TcpStream;
 use tokio_util::codec::{FramedRead, FramedWrite};
+
+impl JSONMessage for Message {
+    fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(&self)
+    }
+    fn get_operation(self) -> String {
+        self.operation
+    }
+}
+
+//// Trait for JSON message. Function contracts for serialize messages.
+pub trait JSONMessage {
+    fn to_json(&self) -> Result<String, serde_json::Error>;
+    fn get_operation(self) -> String;
+}
 
 /// Send function for tokio. It sends json messages.
 pub async fn send(address: &str, mesg: &str) -> Result<Box<Message>, Box<dyn Error>> {
