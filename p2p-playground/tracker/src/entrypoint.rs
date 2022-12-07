@@ -48,7 +48,7 @@ impl Server {
         self,
         address: String,
         _user: String,
-        manager: Arc<Mutex<Box<MessageManager>>>,
+        manager: Arc<Mutex<MessageManager>>,
     ) -> Result<(), Box<dyn Error>> {
         info!("Trying to connect to {}", address);
 

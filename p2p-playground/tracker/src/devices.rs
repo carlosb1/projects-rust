@@ -61,3 +61,18 @@ pub async fn send(address: &str, mesg: &str) -> Result<Box<Message>, Box<dyn Err
         )));
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use rstest::*;
+
+    #[rstest]
+    fn should_create_a_correct_json_message() {
+        let json_message = Message::new("register".to_string());
+        assert_eq!(
+            "{\"operation\":\"register\",\"topic\":\"\",\"info\":{},\"mesg\":\"\"}",
+            json_message.to_json().unwrap()
+        );
+    }
+}
