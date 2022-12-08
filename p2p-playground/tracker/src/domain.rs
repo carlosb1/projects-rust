@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use sha256::digest;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// Message class for messages. It is serialize in a json message.
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -30,7 +30,7 @@ impl Message {
         let mut info: HashMap<String, String> = HashMap::new();
         info.insert(user, address_source);
         Message {
-            operation: "ack".to_string(),
+            operation: "registry".to_string(),
             ..Default::default()
         }
     }
@@ -73,6 +73,11 @@ struct NodeRepository {
 }
 
 impl NodeRepository {
+    pub fn new() -> Self {
+        NodeRepository {
+            data: BTreeMap::new(),
+        }
+    }
     pub fn add(&mut self, node: &Node) {
         let hasher = Hasher {};
         let key = hasher.hash(format!("{:}-{:}", node.user, node.address));
@@ -81,21 +86,21 @@ impl NodeRepository {
 }
 
 struct RegisterNewNode {
-    repository: Arc<NodeRepository>,
+    repository: Arc<Mutex<NodeRepository>>,
 }
 impl RegisterNewNode {
     const USER_PARAM: &str = "user_param";
     const ADDRESS: &str = "address";
 
-    pub fn new(repository: Arc<NodeRepository>) -> Self {
+    pub fn new(repository: Arc<Mutex<NodeRepository>>) -> Self {
         RegisterNewNode { repository }
     }
 
-    pub fn run(message: Message) -> Option<Message> {
+    pub fn run(&mut self, message: Message) -> Option<Message> {
         let user = message.info.get(&RegisterNewNode::USER_PARAM.to_string())?;
         let address = message.info.get(&RegisterNewNode::ADDRESS.to_string())?;
         let node = Node::new(user, address, Type::User);
-
+        self.repository.lock().unwrap().add(&node);
         Some(Message::ok())
     }
 }
@@ -112,11 +117,32 @@ mod tests {
         }
     }
     mod cases {
-        pub fn register_new_node_correctly() {}
+        use crate::domain::Message;
+        use crate::domain::NodeRepository;
+        use crate::domain::RegisterNewNode;
+        use rstest::*;
+        use std::sync::{Arc, Mutex};
+
+        #[rstest]
+        pub fn register_new_user_node_correctly() {
+            let repository = Arc::new(Mutex::new(NodeRepository::new()));
+            let mut new_node_case = RegisterNewNode::new(repository);
+            let message = Message::new_user("user".to_string(), "myaddress".to_string());
+            new_node_case.run(message);
+        }
     }
     mod devices {
         mod repositories {
-            pub fn add_new_node() {}
+            use crate::domain::{Node, NodeRepository, Type};
+            use rstest::*;
+
+            #[rstest]
+            pub fn add_new_node() {
+                let mut repository = NodeRepository::new();
+                let node = Node::new("user", "address", Type::User);
+                repository.add(&node);
+                assert_eq!(1, repository.data.len());
+            }
         }
         mod hashers {
             use crate::domain::Hasher;
