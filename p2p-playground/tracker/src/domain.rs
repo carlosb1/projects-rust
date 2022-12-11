@@ -3,6 +3,20 @@ use sha256::digest;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+struct P2pData {
+    username: String,
+    address: String,
+}
+
+struct P2pNetwork {}
+
+impl P2pNetwork {
+    pub fn join() {}
+    pub fn leave() {}
+    pub fn put() {}
+    pub fn get() {}
+}
+
 /// Message class for messages. It is serialize in a json message.
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Message {
@@ -60,6 +74,7 @@ impl Node {
 
 use std::collections::BTreeMap;
 
+#[derive(Clone)]
 struct Hasher {}
 impl Hasher {
     pub fn hash(self, info: String) -> String {
@@ -78,30 +93,37 @@ impl NodeRepository {
             data: BTreeMap::new(),
         }
     }
-    pub fn add(&mut self, node: &Node) {
-        let hasher = Hasher {};
-        let key = hasher.hash(format!("{:}-{:}", node.user, node.address));
-
+    pub fn add(&mut self, key: String, node: &Node) {
         let _ = self.data.insert(key, (*node).clone());
     }
 }
 
 struct RegisterNewUser {
     repository: Arc<Mutex<NodeRepository>>,
+    hasher: Hasher,
 }
 impl RegisterNewUser {
     const USER_PARAM: &str = "user_param";
     const ADDRESS: &str = "address";
 
     pub fn new(repository: Arc<Mutex<NodeRepository>>) -> Self {
-        RegisterNewUser { repository }
+        RegisterNewUser {
+            repository,
+            hasher: Hasher {},
+        }
     }
 
     pub fn run(&mut self, message: Message) -> Option<Message> {
         let user = message.info.get(&RegisterNewUser::USER_PARAM.to_string())?;
         let address = message.info.get(&RegisterNewUser::ADDRESS.to_string())?;
         let node = Node::new(user, address, Type::User);
-        self.repository.lock().unwrap().add(&node);
+
+        let key = self
+            .hasher
+            .clone()
+            .hash(format!("{:}-{:}", node.user, node.address));
+
+        self.repository.lock().unwrap().add(key, &node);
         Some(Message::ok())
     }
 }
@@ -150,24 +172,26 @@ mod tests {
     }
     mod devices {
         mod repositories {
-            use crate::domain::{Node, NodeRepository, Type};
+            use crate::domain::{Hasher, Node, NodeRepository, Type};
             use rstest::*;
 
             #[rstest]
             pub fn add_new_node() {
                 let mut repository = NodeRepository::new();
                 let node = Node::new("user", "address", Type::User);
-                repository.add(&node);
+                let key = Hasher {}.hash(format!("{:}-{:}", node.user, node.address));
+                repository.add(key, &node);
                 assert_eq!(1, repository.data.len());
             }
             #[rstest]
             pub fn not_add_existing_node() {
                 let mut repository = NodeRepository::new();
                 let node = Node::new("user", "address", Type::User);
-                repository.add(&node);
+                let key = Hasher {}.hash(format!("{:}-{:}", node.user, node.address));
+                repository.add(key.clone(), &node);
 
                 let node = Node::new("user", "address", Type::User);
-                repository.add(&node);
+                repository.add(key.clone(), &node);
                 assert_eq!(1, repository.data.len());
             }
         }
