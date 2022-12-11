@@ -81,26 +81,43 @@ impl NodeRepository {
     pub fn add(&mut self, node: &Node) {
         let hasher = Hasher {};
         let key = hasher.hash(format!("{:}-{:}", node.user, node.address));
-        self.data.insert(key, (*node).clone());
+
+        let _ = self.data.insert(key, (*node).clone());
     }
 }
 
-struct RegisterNewNode {
+struct RegisterNewUser {
     repository: Arc<Mutex<NodeRepository>>,
 }
-impl RegisterNewNode {
+impl RegisterNewUser {
     const USER_PARAM: &str = "user_param";
     const ADDRESS: &str = "address";
 
     pub fn new(repository: Arc<Mutex<NodeRepository>>) -> Self {
-        RegisterNewNode { repository }
+        RegisterNewUser { repository }
     }
 
     pub fn run(&mut self, message: Message) -> Option<Message> {
-        let user = message.info.get(&RegisterNewNode::USER_PARAM.to_string())?;
-        let address = message.info.get(&RegisterNewNode::ADDRESS.to_string())?;
+        let user = message.info.get(&RegisterNewUser::USER_PARAM.to_string())?;
+        let address = message.info.get(&RegisterNewUser::ADDRESS.to_string())?;
         let node = Node::new(user, address, Type::User);
         self.repository.lock().unwrap().add(&node);
+        Some(Message::ok())
+    }
+}
+
+struct SearchNewUser {
+    repository: Arc<Mutex<NodeRepository>>,
+}
+
+impl SearchNewUser {
+    const USER_PARAM: &str = "user_param";
+
+    pub fn new(repository: Arc<Mutex<NodeRepository>>) -> Self {
+        SearchNewUser { repository }
+    }
+    pub fn run(&mut self, message: Message) -> Option<Message> {
+        let user = message.info.get(&SearchNewUser::USER_PARAM.to_string())?;
         Some(Message::ok())
     }
 }
@@ -119,14 +136,14 @@ mod tests {
     mod cases {
         use crate::domain::Message;
         use crate::domain::NodeRepository;
-        use crate::domain::RegisterNewNode;
+        use crate::domain::RegisterNewUser;
         use rstest::*;
         use std::sync::{Arc, Mutex};
 
         #[rstest]
         pub fn register_new_user_node_correctly() {
             let repository = Arc::new(Mutex::new(NodeRepository::new()));
-            let mut new_node_case = RegisterNewNode::new(repository);
+            let mut new_node_case = RegisterNewUser::new(repository);
             let message = Message::new_user("user".to_string(), "myaddress".to_string());
             new_node_case.run(message);
         }
@@ -139,6 +156,16 @@ mod tests {
             #[rstest]
             pub fn add_new_node() {
                 let mut repository = NodeRepository::new();
+                let node = Node::new("user", "address", Type::User);
+                repository.add(&node);
+                assert_eq!(1, repository.data.len());
+            }
+            #[rstest]
+            pub fn not_add_existing_node() {
+                let mut repository = NodeRepository::new();
+                let node = Node::new("user", "address", Type::User);
+                repository.add(&node);
+
                 let node = Node::new("user", "address", Type::User);
                 repository.add(&node);
                 assert_eq!(1, repository.data.len());
