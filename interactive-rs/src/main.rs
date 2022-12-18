@@ -1,18 +1,28 @@
 extern crate termion;
 
 use clap::Parser;
+use sled::Db;
 
 struct DataRepository {
-    file_path: String,
+    tree: Db,
 }
 impl DataRepository {
-    pub fn add(self, link: String, tags: Vec<String>) {
-        let tree = sled::open(self.file_path.to_string())
-            .map_err(|x| format!("Error: {x}").to_string())
-            .expect(format!("It was not possible open the file {:?}", self.file_path).as_str());
+    pub fn new(file_path: &str) -> Result<DataRepository, String> {
+        match sled::open(file_path) {
+            Ok(tr) => Ok(DataRepository { tree: tr }),
+            Err(e) => Err(format!("{:?}", e)),
+        }
+    }
+
+    pub fn add(&mut self, link: String, tags: Vec<String>) {
         tags.iter().for_each(|tag| {
-            let _ = tree.insert(tag.as_str(), link.as_str());
+            let _ = self.tree.insert(tag.as_str(), link.as_str());
         });
+
+        let _ = self.tree.flush();
+    }
+    pub fn list(&mut self) {
+        //let all_values: Vec<&str> = self.tree.iter().map(|val| val.unwrap().into()).collect();
     }
 }
 
@@ -23,11 +33,17 @@ struct Cli {
     tags: Vec<String>,
 }
 
-fn main() {
-    let args = Cli::parse();
+#[derive(Parser, Debug)]
+struct Args {
+    #[arg(short, long)]
+    delete: bool,
+    #[arg(short, long)]
+    list: bool,
+}
 
-    let repo = DataRepository {
-        file_path: "data.db".to_string(),
-    };
+fn main() -> Result<(), String> {
+    let args = Cli::parse();
+    let mut repo = DataRepository::new("data.db")?;
     repo.add(args.link, args.tags);
+    Ok(())
 }
