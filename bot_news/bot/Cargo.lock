@@ -89,7 +89,7 @@ dependencies = [
  "scraper",
  "select",
  "teloxide",
- "tokio",
+ "tokio 1.8.4",
  "url 1.7.2",
 ]
 
@@ -426,7 +426,7 @@ dependencies = [
  "indexmap",
  "log",
  "slab",
- "tokio",
+ "tokio 0.2.24",
  "tokio-util 0.3.1",
 ]
 
@@ -522,7 +522,7 @@ dependencies = [
  "net2",
  "pin-project",
  "time",
- "tokio",
+ "tokio 0.2.24",
  "tower-service",
  "want",
 ]
@@ -536,7 +536,7 @@ dependencies = [
  "bytes",
  "hyper",
  "native-tls",
- "tokio",
+ "tokio 0.2.24",
  "tokio-tls",
 ]
 
@@ -1243,7 +1243,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "time",
- "tokio",
+ "tokio 0.2.24",
  "tokio-tls",
  "url 2.1.1",
  "wasm-bindgen",
@@ -1531,7 +1531,7 @@ dependencies = [
  "serde_with_macros",
  "teloxide-macros",
  "thiserror",
- "tokio",
+ "tokio 0.2.24",
  "tokio-util 0.2.0",
 ]
 
@@ -1626,9 +1626,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "0.2.19"
+version = "0.2.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d9c43f1bb96970e153bcbae39a65e249ccb942bd9d36dbdf086024920417c9c"
+checksum = "099837d3464c16a808060bb3f02263b412f6fafcb5d01c533d309985fbeebe48"
 dependencies = [
  "bytes",
  "fnv",
@@ -1649,10 +1649,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-macros"
-version = "0.2.5"
+name = "tokio"
+version = "1.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c3acc6aa564495a0f2e1d59fab677cd7f81a19994cfc7f3ad0e64301560389"
+checksum = "50dae83881bc9b0403dd5b44ea9deed3e939856cc8722d5be37f0d6e5c6d53dd"
+dependencies = [
+ "autocfg 1.0.0",
+ "pin-project-lite 0.2.9",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e44da00bfc73a25f814cd8d7e57a68a5c31b74b3152a0a1d1f590c97ed06265a"
 dependencies = [
  "proc-macro2 1.0.49",
  "quote 1.0.3",
@@ -1666,7 +1676,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7bde02a3a5291395f59b06ec6945a3077602fac2b07eeeaf0dee2122f3619828"
 dependencies = [
  "native-tls",
- "tokio",
+ "tokio 0.2.24",
 ]
 
 [[package]]
@@ -1680,7 +1690,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.1.4",
- "tokio",
+ "tokio 0.2.24",
 ]
 
 [[package]]
@@ -1694,7 +1704,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.1.4",
- "tokio",
+ "tokio 0.2.24",
 ]
 
 [[package]]
