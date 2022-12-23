@@ -23,7 +23,7 @@ name = "manager"
 path = "src/main.rs"
 
 [dependencies]
-tokio = { version = "0.2.17", features = ["net"] }
+tokio = { version = "1.8.4", features = ["net"] }
 tokio-util = { version = "0.2", features = ["codec"] }
 futures = "0.3"
 bytes = "0.5.4"
@@ -37,6 +37,6 @@ pretty_env_logger="0.4"
 
 
 [dev-dependencies]
-tokio = {version = "0.2.11", features = ["time", "macros"] }
+tokio = {version = "1.8.4", features = ["time", "macros"] }
 
 
