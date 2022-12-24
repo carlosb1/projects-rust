@@ -1,28 +1,43 @@
 extern crate termion;
 
 use clap::Parser;
-use sled::Db;
+use redis;
+use redis::Commands;
 
 struct DataRepository {
-    tree: Db,
+    client: redis::Client,
 }
 impl DataRepository {
-    pub fn new(file_path: &str) -> Result<DataRepository, String> {
-        match sled::open(file_path) {
-            Ok(tr) => Ok(DataRepository { tree: tr }),
-            Err(e) => Err(format!("{:?}", e)),
-        }
+    pub fn new(file_path: &str) -> Result<DataRepository, &'static str> {
+        Ok(DataRepository {
+            client: redis::Client::open(file_path)
+                .map_err(|e| "It was not possible to open the file")?,
+        })
     }
 
-    pub fn add(&mut self, link: String, tags: Vec<String>) {
+    pub fn add(&mut self, link: String, tags: Vec<String>) -> Result<(), &'static str> {
+        let mut con = self
+            .client
+            .get_connection()
+            .map_err(|e| "It could not get a connection")?;
+
         tags.iter().for_each(|tag| {
-            let _ = self.tree.insert(tag.as_str(), link.as_str());
+            let _: () = con
+                .set(tag.as_str(), link.as_str())
+                .expect("It could not set the values in the connection");
         });
 
-        let _ = self.tree.flush();
+        Ok(())
     }
-    pub fn list(&mut self) {
-        //let all_values: Vec<&str> = self.tree.iter().map(|val| val.unwrap().into()).collect();
+    pub fn list(&mut self) -> Result<(), &'static str> {
+        let mut con = self
+            .client
+            .get_connection()
+            .map_err(|e| "It could not get a connection")?;
+
+        let _: () = redis::cmd("KEYS").arg("*").query(&mut con).unwrap();
+
+        Ok(())
     }
 }
 
