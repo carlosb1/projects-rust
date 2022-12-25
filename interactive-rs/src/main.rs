@@ -3,6 +3,7 @@ extern crate termion;
 use clap::Parser;
 use redis;
 use redis::Commands;
+use std::collections::HashMap;
 
 struct DataRepository {
     client: redis::Client,
@@ -29,15 +30,17 @@ impl DataRepository {
 
         Ok(())
     }
-    pub fn list(&mut self) -> Result<(), &'static str> {
+    pub fn list(&mut self) -> Result<Vec<String>, &'static str> {
         let mut con = self
             .client
             .get_connection()
             .map_err(|e| "It could not get a connection")?;
 
-        let _: () = redis::cmd("KEYS").arg("*").query(&mut con).unwrap();
+        let map: HashMap<String, String> = con
+            .hgetall("*")
+            .map_err(|_| "It could not list all the values")?;
 
-        Ok(())
+        Ok(map.values().cloned().collect::<Vec<String>>())
     }
 }
 
@@ -58,7 +61,14 @@ struct Args {
 
 fn main() -> Result<(), String> {
     let args = Cli::parse();
+    let opt_args = Args::parse();
     let mut repo = DataRepository::new("data.db")?;
-    repo.add(args.link, args.tags);
+    if opt_args.list {
+        let values = repo.list()?;
+        values.iter().for_each(|e| println!("- {:}", e));
+    } else {
+        let _ = repo.add(args.link, args.tags);
+    }
+
     Ok(())
 }
