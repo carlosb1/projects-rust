@@ -1,0 +1,12 @@
+[package]
+name = "gmail-load"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+imap = "2.4.1"
+native-tls = "0.2"
+mailparse = "0.14.0"
+html2text = "0.5.1"
