@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
+#[derive(Clone)]
 pub enum DBTypes {
     Number(u32),
     Text(String),
@@ -46,12 +47,27 @@ impl FactoryTableQuery {
         return format!("INSERT INTO {:} ({:}) values ({:});", self.name, keys, vals);
     }
 
-    pub fn select(&self, values: Vec<&str>) -> String {
-        let mut filter = String::from("*");
-        if !values.is_empty() {
-            filter = values.join(", ");
+    pub fn select(&self, filter: Vec<&str>, condition: Vec<(&str, &str)>) -> String {
+        let mut query_filter = String::from("*");
+        if !filter.is_empty() {
+            query_filter = filter.join(", ");
         }
-        return format!("SELECT {:} from {:}", filter, self.name);
+        let mut query_condition = String::new();
+        if !condition.is_empty() {
+            query_condition = String::from("where ");
+            query_condition.push_str(
+                condition
+                    .iter()
+                    .map(|(name, typ)| format!("{:} = {:}", name, typ))
+                    .collect::<Vec<String>>()
+                    .join(" and ")
+                    .as_str(),
+            );
+        }
+        return format!(
+            "SELECT {:} from {:} {:}",
+            query_filter, self.name, query_condition
+        );
     }
 
     pub fn new_inserted_id(&self) -> String {
@@ -84,10 +100,18 @@ impl DataRepository {
         }
     }
 
+    pub fn create(&self, pair_values: Vec<(&str, &str)>) {
+        let connection = sqlite::open(self.file_path.clone())
+            .map_err(|_| "It was not possible to open the connection")
+            .unwrap();
+        let _ = connection.execute(self.query_factory.create(pair_values));
+    }
+
     pub fn add(&self, values: HashMap<&str, DBTypes>) -> Result<String, &'static str> {
         let connection = sqlite::open(self.file_path.clone())
             .map_err(|_| "It was not possible to open the connection")
             .unwrap();
+        println!("{:}", self.query_factory.insert(values.clone()));
         let _ = connection
             .execute(self.query_factory.insert(values))
             .map_err(|_| "It was not possible insert the values")
@@ -101,34 +125,56 @@ impl DataRepository {
         Ok(id)
     }
 
-    pub fn list(&mut self) -> Result<HashMap<String, String>, &'static str> {
+    pub fn list(&mut self) -> Result<HashMap<String, HashMap<String, String>>, &'static str> {
         let connection = sqlite::open(self.file_path.clone())
             .map_err(|_| "It was not possible to open the connection")
             .unwrap();
-        let mut result: HashMap<String, String> = HashMap::new();
+        let mut result: HashMap<String, HashMap<String, String>> = HashMap::new();
         connection
-            .iterate(self.query_factory.select(Vec::new()), |pairs| {
+            .iterate(self.query_factory.select(Vec::new(), Vec::new()), |pairs| {
+                let mut new_value: HashMap<String, String> = HashMap::new();
+                let mut id = String::new();
                 for &(name, value) in pairs.iter() {
-                    result.insert(name.to_string(), value.unwrap().to_string());
+                    if name == "id" {
+                        id = value.unwrap().to_string();
+                    }
+                    new_value.insert(name.to_string(), value.unwrap().to_string());
                 }
+                result.insert(id, new_value);
                 true
             })
             .unwrap();
         Ok(result)
     }
 
-    pub fn select_by(&mut self, filter: String) -> Result<HashMap<String, String>, &'static str> {
+    pub fn select_by(
+        &mut self,
+        filter: Vec<&str>,
+        condition: Vec<(&str, &str)>,
+    ) -> Result<HashMap<String, HashMap<String, String>>, &'static str> {
         let connection = sqlite::open(self.file_path.clone())
             .map_err(|_| "It was not possible to open the connection")
             .unwrap();
-        let mut result: HashMap<String, String> = HashMap::new();
+
+        let mut filter_with_id = filter.clone();
+        filter_with_id.insert(0, "id");
+        let mut result: HashMap<String, HashMap<String, String>> = HashMap::new();
         connection
-            .iterate(self.query_factory.select(vec![filter.as_str()]), |pairs| {
-                for &(name, value) in pairs.iter() {
-                    result.insert(name.to_string(), value.unwrap().to_string());
-                }
-                true
-            })
+            .iterate(
+                self.query_factory.select(filter_with_id, condition),
+                |pairs| {
+                    let mut new_value: HashMap<String, String> = HashMap::new();
+                    let mut id = String::new();
+                    for &(name, value) in pairs.iter() {
+                        if name == "id" {
+                            id = value.unwrap().to_string();
+                        }
+                        new_value.insert(name.to_string(), value.unwrap().to_string());
+                    }
+                    result.insert(id, new_value);
+                    true
+                },
+            )
             .unwrap();
         Ok(result)
     }
@@ -152,7 +198,7 @@ impl Link {
 
     pub fn hashmap<'a>(&self) -> HashMap<&'a str, DBTypes> {
         let dbtypes = DBTypes::Text(self.link.clone());
-        return HashMap::from([("link", dbtypes)]);
+        return HashMap::from([("url", dbtypes)]);
     }
 }
 
@@ -182,13 +228,14 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// does testing things
+    /// Add new link with its tags
     Add {
         #[arg(short, long)]
         link: String,
         #[arg(short, long)]
         tags: Vec<String>,
     },
+    /// Delete new link
     Delete {
         #[arg(short, long)]
         id_link: String,
@@ -200,6 +247,16 @@ fn main() -> Result<(), String> {
     let args = Args::parse();
     let mut links_repo = DataRepository::new("data.db".to_string(), "links".to_string());
     let mut tag_repo = DataRepository::new("data.db".to_string(), "tags".to_string());
+
+    let query_create_table_links = vec![("id", "INTEGER PRIMARY KEY"), ("url", "TEXT")];
+    let query_create_table_tags = vec![
+        ("id", "INTEGER PRIMARY KEY"),
+        ("id_link", "INTEGER"),
+        ("tag", "TEXT"),
+    ];
+    links_repo.create(query_create_table_links);
+    tag_repo.create(query_create_table_tags);
+
     match args.command {
         Commands::Add { link, tags } => {
             let id: String = links_repo
@@ -220,16 +277,17 @@ fn main() -> Result<(), String> {
         Commands::List => {
             let values = links_repo.list()?;
             values.iter().for_each(|(key, value)| {
-                println!("{:} -> {:}", key, value);
-                if key == "id" {
-                    let tags = tag_repo
-                        .select_by("id_link".to_string())
-                        .unwrap()
-                        .values()
-                        .map(|v| (*v).clone())
-                        .collect::<Vec<String>>();
-                    println!("{:?}", tags);
-                }
+                println!("{:} -> {:?}", key, value);
+                let tags = tag_repo
+                    .select_by(Vec::from(["tag"]), Vec::from([("id_link", key.as_str())]))
+                    .unwrap()
+                    .values()
+                    .map(|v| {
+                        println!("!!!{:?}", v);
+                        (*(*v).get("tag").unwrap()).clone()
+                    })
+                    .collect::<Vec<String>>();
+                println!("{:?}", tags);
             });
         }
     }
