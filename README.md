@@ -1,3 +1,4 @@
+```
 .
 ├── blockchain         - Example about how to implement a block chain
 ├── bot_news           - Example of a bot for news, it applies AI to check the type
@@ -20,5 +21,4 @@
 ├── web_cbir  			   - Playing a CBIR engine
 ├── web_endpoint
 └── workshop_serveless - A workshop for using serverless libraries in Rust
-
-21 directories, 1 file
+```
