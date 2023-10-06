@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Carlos B <mcflurry0@gmail.com>"]
 
 [dependencies]
-tokio = "0.1.13"
+tokio = "1.8.4"
 tokio-codec = "0.1.0"
