@@ -17,7 +17,7 @@ futures = "0.1"
 futures-backoff = "0.1"
 rusoto_core = "0.38"
 uuid = { version = "0.7", features = ["v4"]}
-tokio = "0.1"
+tokio = "1.8"
 lambda_runtime = "0.2.0"
 lambda_runtime_errors = "0.1.0"
 lambda_http = "0.1.0"
