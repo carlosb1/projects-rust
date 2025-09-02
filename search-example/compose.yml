@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./default.env
+      - ./override.env
+
+  pyagents:
+    build:
+      context: ./pyagents
+      dockerfile: Dockerfile
+    shm_size: "1gb"
+    env_file:
+      - ./default.env
+      - ./override.env
+
+  qdrant:
+    image:  qdrant/qdrant:dev
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_data:/qdrant_data
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
