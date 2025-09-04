@@ -1,29 +1,25 @@
-import os
+import threading
+import traceback
 
-import redis
-import json
-import subprocess
+import schedule
+import time
 import dotenv
+
+from agent_worker import run, run_batch
+
 
 def main():
     loaded = dotenv.load_dotenv()
-    print(loaded)
+    print(f"loaded .env info {loaded}")
+    batch_join = threading.Thread(target=run_batch).start()
 
-    #LOCAL_HOST_NAME="host.docker.internal" #localhost
-    LOCAL_HOST_NAME = "0.0.0.0"
+    schedule.every().day.at("10:30").do(run())
 
-    url = os.environ.get("URL_QUEUE", f"redis://{LOCAL_HOST_NAME}:6379/0")
-    r = redis.from_url(url)
-
-    while True:
-        _, task_json = r.blpop("queue")
-        task = json.loads(task_json)
-        if task['status'] == 'run':
-            pass
-        print(f"[Dispatcher] Received task: {task}")
-
-        # Throws the process
-        subprocess.Popen(["python", "agent_worker.py", json.dumps(task)])
-
+    try:
+        while 1:
+            schedule.run_pending()
+            time.sleep(10)
+    except Exception as e:
+        traceback.print_exception(e)
 if __name__ == "__main__":
     main()

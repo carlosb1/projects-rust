@@ -26,7 +26,3 @@ services:
       - "6333:6333"
     volumes:
       - ./qdrant_data:/qdrant_data
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
