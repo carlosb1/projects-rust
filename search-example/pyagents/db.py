@@ -1,15 +1,11 @@
-import asyncio
 import uuid
 from typing import List, Tuple, Dict, Any
 
 from qdrant_client import QdrantClient
-from qdrant_client.conversions.common_types import PointStruct, Distance, VectorParams
+from qdrant_client.conversions.common_types import PointStruct
+from qdrant_client.http.models import Distance, VectorParams
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
-
-from agent_worker import fetch_boe_sumario, gather_unique_pdfs, download_pdfs, extract_pdf_text_pages
-from parser import flatten_boe_payload
-
 
 
 def upsert_chunks(

@@ -13,7 +13,9 @@ def main():
     print(f"loaded .env info {loaded}")
     batch_join = threading.Thread(target=run_batch).start()
 
-    schedule.every().day.at("10:30").do(run())
+    print(f"download current data for today")
+    run()
+    schedule.every().day.at("10:30").do(run)
 
     try:
         while 1:

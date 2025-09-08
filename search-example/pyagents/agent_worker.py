@@ -211,14 +211,18 @@ def run():
     loaded = dotenv.load_dotenv()
     print(loaded)
     # Qdrant: ensure collection & upsert
-    embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")  # 384 dims
+    print("Trying to load sentence transformer")
+    embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")  # 384 dims
+    print("Trying to initialize client for qdrant...")
     client = QdrantClient(host=qdrant_host, port=qdrant_port)
+    print("Fixing database collection")
     ensure_collection(client, collection_name, vector_size=384)
 
 
     # Obtener fecha actual en formato aaaammdd
     now = datetime.today()
     str_now = now.strftime("%Y%m%d")
+    print(f"Trying to ingest data for day={str_now}...")
     ingest_boe_date_to_qdrant(client, embedder, str_now, collection_name)
 
 

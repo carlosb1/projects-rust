@@ -1,2 +1,6 @@
-override.env
+*.pyc
+venv/
+.idea
+.idea/
 */.idea
+webapp/dist

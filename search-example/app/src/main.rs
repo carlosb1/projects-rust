@@ -1,71 +1,66 @@
-use dioxus::prelude::*;
+mod db;
+mod models;
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("/assets/main.css");
-const HEADER_SVG: Asset = asset!("/assets/header.svg");
-const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+use axum::extract::{Query, State};
+use axum::http::StatusCode;
+use axum::{Json, Router};
+use axum::routing::{get, get_service};
+use tokio::sync::{broadcast, Mutex};
+use tokio::sync::broadcast::Sender;
+use tower_http::services::{ServeDir, ServeFile};
+use tracing::{debug, info};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use crate::models::SearchResult;
 
-fn main() {
-    dioxus::launch(App);
+struct AppState {
+    tx: Sender<String>,
+    db_client: Arc<Mutex<db::Client>>,
 }
 
-#[component]
-fn App() -> Element {
-    rsx! {
-        document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS } document::Link { rel: "stylesheet", href: TAILWIND_CSS }
-        Hero {}
-        Echo {}
-    }
+async fn search(State(arc_state): State<Arc<AppState>>,
+                Query(params): Query<Vec<String>>) -> Result<Json<Vec<SearchResult>>, StatusCode> {
+    let res = arc_state.db_client.lock().await.search(params).await.map_err(|e| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(res))
 }
 
-#[component]
-pub fn Hero() -> Element {
-    rsx! {
-        div {
-            id: "hero",
-            img { src: HEADER_SVG, id: "header" }
-            div { id: "links",
-                a { href: "https://dioxuslabs.com/learn/0.6/", "📚 Learn Dioxus" }
-                a { href: "https://dioxuslabs.com/awesome", "🚀 Awesome Dioxus" }
-                a { href: "https://github.com/dioxus-community/", "📡 Community Libraries" }
-                a { href: "https://github.com/DioxusLabs/sdk", "⚙️ Dioxus Development Kit" }
-                a { href: "https://marketplace.visualstudio.com/items?itemName=DioxusLabs.dioxus", "💫 VSCode Extension" }
-                a { href: "https://discord.gg/XgGxMSkvUM", "👋 Community Discord" }
-            }
-        }
-    }
-}
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    //TODO open this port
+    let qdrant_host = std::env::var("QDRANT_HOST").unwrap_or("0.0.0.0".to_string());
+    let qdrant_port: u16 = std::env::var("QDRANT_PORT").unwrap_or("6333".to_string()).parse()?;
 
-/// Echo component that demonstrates fullstack server functions.
-#[component]
-fn Echo() -> Element {
-    let mut response = use_signal(|| String::new());
+    // tracing info
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| format!("{}=trace", env!("CARGO_CRATE_NAME")).into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
-    rsx! {
-        div {
-            id: "echo",
-            h4 { "ServerFn Echo" }
-            input {
-                placeholder: "Type here to echo...",
-                oninput:  move |event| async move {
-                    let data = echo_server(event.value()).await.unwrap();
-                    response.set(data);
-                },
-            }
+    // Set up application state for use with with_state().
+    // let user_set = Mutex::new(HashSet::new());
+    let (tx, _rx) = broadcast::channel(1024);
+    let db_client = Arc::new(Mutex::new(db::Client::new(qdrant_host.as_str(), qdrant_port, None)?));
+    let app_state = Arc::new(AppState { tx: tx.clone() , db_client});
 
-            if !response().is_empty() {
-                p {
-                    "Server echoed: "
-                    i { "{response}" }
-                }
-            }
-        }
-    }
-}
+    let static_dir = get_service(ServeDir::new("../webapp/dist/public"))
+        .handle_error(|err| async move {
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("serve error: {err}"))
+        });
 
-/// Echo the user input on the server.
-#[server(EchoServer)]
-async fn echo_server(input: String) -> Result<String, ServerFnError> {
-    Ok(input)
+    let app = Router::new()
+        .route("/search/", get(search))
+        .fallback_service(static_dir)
+        .with_state(app_state);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .unwrap();
+    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
+    Ok(())
 }
