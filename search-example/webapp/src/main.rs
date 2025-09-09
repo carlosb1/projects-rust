@@ -1,6 +1,8 @@
+use dioxus::logger::tracing;
 use dioxus::prelude::*;
 use gloo_net::http::Request;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -22,19 +24,19 @@ pub struct EntryResult {
 enum FetchState {
     Idle,
     Loading,
-    Loaded(SearchResult),
+    Loaded(Vec<SearchResult>),
     Error(String),
 }
-
 async fn search(query: Vec<String>, mut state: Signal<FetchState>) {
-    let qs = serde_urlencoded::to_string(query).unwrap();
+    let pairs: Vec<(&str, String)> = query.into_iter().map(|s| ("q", s)).collect();
+    let qs = serde_urlencoded::to_string(&pairs).unwrap();
 
     let url = format!("/search?{qs}");
 
     match Request::get(url.as_str()).send().await {
         Ok(res) => {
             if res.ok() {
-                match res.json::<SearchResult>().await {
+                match res.json::<Vec<SearchResult>>().await {
                     Ok(json) => *state.write() = FetchState::Loaded(json),
                     Err(e) => *state.write() = FetchState::Error(format!("Error parseando JSON: {}", e)),
                 }
@@ -53,9 +55,11 @@ fn main() {
 #[component]
 fn App() -> Element {
     rsx! {
+        link { rel: "stylesheet", href: TAILWIND_CSS }
+        link { rel: "stylesheet", href: MAIN_CSS }
         div { class: "min-h-screen w-full bg-gray-50 p-6",
         div { class: "max-w-3xl  mx-auto space-y-4",
-        h1 { class: "text-2xl font-bold", "Buscador" }
+        h1 { class: "text-2xl font-bold text-black", "Buscador" }
         p { class: "text-sm text-gray-600", "Introduce consultas y pulsa Enter para añadir."
             }
                 SearchView {}
@@ -100,7 +104,7 @@ fn SearchView() -> Element {
                 }
                 // Input
                 input {
-                    class: "flex-1 min-w-[220px] border rounded-xl px-3 py-2 shadow-sm",
+                    class: "flex-1 min-w-[220px] border rounded-xl px-3 py-2 shadow-sm text-black",
                     placeholder: "Escribe una consulta y Enter…",
                     value: "{input.read()}",
                     oninput: move |e| *input.write() = e.value().to_string(),
@@ -118,7 +122,7 @@ fn SearchView() -> Element {
                 FetchState::Idle => rsx!( p { class: "text-gray-500", "Esperando consulta…" } ),
                 FetchState::Loading => rsx!( p { class: "animate-pulse", "Buscando…" } ),
                 FetchState::Error(msg) => rsx!( p { class: "text-red-600", "{msg}" } ),
-                FetchState::Loaded(res) => rsx!( ResultsList { result: res.clone() } ),
+                FetchState::Loaded(res) => rsx!( ResultsList { results: res.clone() } ),
                 }
         }
     }
@@ -128,21 +132,23 @@ fn SearchView() -> Element {
 fn Chip(label: String, on_remove: EventHandler<MouseEvent>) -> Element {
     rsx! {
         span { class: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border shadow-sm",
-            span { class: "text-sm", "{label}" }
+            span { class: "text-sm text-black", "{label}" }
             button { class: "text-xs text-gray-500 hover:text-black", onclick: on_remove, "✕" }
         }
     }
 }
 
 #[component]
-fn ResultsList(result: SearchResult) -> Element {
+fn ResultsList(results: Vec<SearchResult>) -> Element {
     // let total = result.total.unwrap_or_default();
     // let items = result.results.unwrap_or_default();
-    let mut items: Vec<(f32, String)> = result
-        .results
-        .iter()
-        .map(|e| (e.score, format!("{:?}", e.payload)))
-        .collect();
+
+    let mut items: Vec<(f32, String)> = Vec::new();
+    for result in results {
+        for e in &result.results {
+            items.push( (e.score, format!("{:?}", e.payload)));
+        }
+    }
     rsx! {
         div { class: "space-y-2",
         for item in items.iter() {

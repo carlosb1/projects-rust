@@ -21,7 +21,9 @@ impl Client {
             InitOptions::new(EmbeddingModel::AllMiniLML6V2).with_show_download_progress(true),
         )?;
 
-        let mut client = Qdrant::from_url(format!("http://{qdrant_host}:{qdrant_port}").as_str());
+
+        let qdrant_url = format!("http://{qdrant_host}:{qdrant_port}");
+        let mut client = Qdrant::from_url(qdrant_url.as_str());
         if api_key.is_some() {
             client = client.api_key(api_key.unwrap().as_str());
         }
@@ -40,7 +42,7 @@ impl Client {
                 embed, // Search vector
                 LIMIT,                  // Search limit, number of results to return
             ).with_payload(true);
-            let results = self.client.search_points(search_request).await?;
+            let results = self.client.search_points(search_request).await.unwrap();
             let time: f64 = results.time;
             let mut entries_to_return = Vec::<EntryResult>::new();
             for x in results.result {

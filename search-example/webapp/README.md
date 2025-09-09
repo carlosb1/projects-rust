@@ -15,6 +15,13 @@ project/
 2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation
 3. Run the following command in the root of the project to start the Tailwind CSS compiler:
 
+curl -L https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss
+chmod +x tailwindcss
+
+# Compila (sin npm):
+./tailwindcss -i ./styles/input.css -o ./assets/tailwind.css -c ./tailwind.config.js --minify
+
+
 ```bash
 npx tailwindcss -i ./tailwind.css -o ./assets/tailwind.css --watch
 ```

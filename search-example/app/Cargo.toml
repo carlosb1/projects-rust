@@ -13,3 +13,4 @@ qdrant-client = "1.15.0"
 anyhow = "1.0.99"
 fastembed = "5.1.0"
 serde = { version = "1.0.219", features = ["derive"] }
+axum-extra = { version = "0.10.1", features = ["query"] }

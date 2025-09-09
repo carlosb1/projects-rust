@@ -3,10 +3,12 @@ mod models;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use axum::extract::{Query, State};
+use axum::extract::{State};
 use axum::http::StatusCode;
 use axum::{Json, Router};
 use axum::routing::{get, get_service};
+use axum_extra::extract::Query;
+use serde::Deserialize;
 use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Sender;
 use tower_http::services::{ServeDir, ServeFile};
@@ -15,14 +17,22 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use crate::models::SearchResult;
 
+
 struct AppState {
     tx: Sender<String>,
     db_client: Arc<Mutex<db::Client>>,
 }
 
+#[derive(Debug, Deserialize)]
+struct Q {
+    q: Vec<String>,
+}
+
+
+
 async fn search(State(arc_state): State<Arc<AppState>>,
-                Query(params): Query<Vec<String>>) -> Result<Json<Vec<SearchResult>>, StatusCode> {
-    let res = arc_state.db_client.lock().await.search(params).await.map_err(|e| StatusCode::INTERNAL_SERVER_ERROR)?;
+                Query(mut params):  Query<Q>) -> Result<Json<Vec<SearchResult>>, StatusCode> { ;
+    let res = arc_state.db_client.lock().await.search(params.q).await.map_err(|e| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(res))
 }
 
@@ -30,7 +40,7 @@ async fn search(State(arc_state): State<Arc<AppState>>,
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     //TODO open this port
     let qdrant_host = std::env::var("QDRANT_HOST").unwrap_or("0.0.0.0".to_string());
-    let qdrant_port: u16 = std::env::var("QDRANT_PORT").unwrap_or("6333".to_string()).parse()?;
+    let qdrant_port: u16 = std::env::var("QDRANT_PORT").unwrap_or("6334".to_string()).parse()?;
 
     // tracing info
     tracing_subscriber::registry()
@@ -53,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
 
     let app = Router::new()
-        .route("/search/", get(search))
+        .route("/search", get(search))
         .fallback_service(static_dir)
         .with_state(app_state);
 

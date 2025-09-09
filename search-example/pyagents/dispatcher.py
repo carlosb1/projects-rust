@@ -17,6 +17,7 @@ def main():
     run()
     schedule.every().day.at("10:30").do(run)
 
+
     try:
         while 1:
             schedule.run_pending()

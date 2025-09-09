@@ -4640,6 +4640,7 @@ dependencies = [
  "dioxus",
  "gloo-net",
  "serde",
+ "serde_json",
  "serde_urlencoded",
  "web-sys",
 ]

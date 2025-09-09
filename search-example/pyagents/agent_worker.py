@@ -206,7 +206,10 @@ def ingest_boe_date_to_qdrant(
 
 def run():
     qdrant_host = os.environ.get("QDRANT_HOST","0.0.0.0")
-    qdrant_port = int(os.environ.get("QDRANT_PORT",6333))
+    qdrant_port = int(os.environ.get("QDRANT_PORT",6334))
+
+    print(f"Using this host and port for db {qdrant_host}:{qdrant_port} ")
+
     collection_name= "boe_disposiciones"
     loaded = dotenv.load_dotenv()
     print(loaded)
@@ -214,7 +217,7 @@ def run():
     print("Trying to load sentence transformer")
     embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", device="cpu")  # 384 dims
     print("Trying to initialize client for qdrant...")
-    client = QdrantClient(host=qdrant_host, port=qdrant_port)
+    client = QdrantClient(host=qdrant_host, grpc_port=qdrant_port, prefer_grpc=True)
     print("Fixing database collection")
     ensure_collection(client, collection_name, vector_size=384)
 
@@ -245,12 +248,13 @@ def read_or_create(path: Path, default_entry: str, encoding="utf-8"):
 
 def run_batch():
     qdrant_host = os.environ.get("QDRANT_HOST","0.0.0.0")
-    qdrant_port = int(os.environ.get("QDRANT_PORT",6333))
+    qdrant_port = int(os.environ.get("QDRANT_PORT",6334))
     collection_name= "boe_disposiciones"
+    print(f"Using this host and port for db {qdrant_host}:{qdrant_port} ")
 
 
     embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")  # 384 dims
-    client = QdrantClient(host=qdrant_host, port=qdrant_port)
+    client = QdrantClient(host=qdrant_host, grpc_port=qdrant_port, prefer_grpc=True)
     ensure_collection(client, collection_name, vector_size=384)
 
     last_day_not_updated = read_or_create(BATCH_REFERENCE_DATE, INIT_REFERENCE_DATA) - timedelta(day=1)
@@ -260,7 +264,7 @@ def run_batch():
             str_last_not_updated = last_day_not_updated.strftime("%Y%m%d")
             print(f"Retrieving data from {str_last_not_updated}...")
             ingest_boe_date_to_qdrant(client, embedder, str_last_not_updated, collection_name)
-            write_or_create(BATCH_REFERENCE_DATE, str_last_not_updated) - timedelta(day=1)
+            write_or_create(BATCH_REFERENCE_DATE, str_last_not_updated) - timedelta(days=1)
             print("sleeping")
             time.sleep(60)
         except Exception as e:

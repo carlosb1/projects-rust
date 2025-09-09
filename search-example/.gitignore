@@ -1,6 +1,7 @@
 *.pyc
 venv/
 .idea
-.idea/
 */.idea
+pyagents/boe_disposiciones
 webapp/dist
+app/.fastembed_cache
