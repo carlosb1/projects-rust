@@ -6,8 +6,6 @@ bitarray==3.7.1
 certifi==2025.8.3
 charset-normalizer==3.4.3
 coloredlogs==15.0.1
-Django==5.2.6
-django-scheduler==0.10.1
 exceptiongroup==1.3.0
 fastembed==0.7.3
 filelock==3.19.1

@@ -14,7 +14,7 @@ def main():
     batch_join = threading.Thread(target=run_batch).start()
 
     print(f"download current data for today")
-    run()
+    #run()
     schedule.every().day.at("10:30").do(run)
 
 

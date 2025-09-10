@@ -26,6 +26,7 @@ def flatten_boe_payload(payload: Dict[str, Any]) -> List[Dict[str, Optional[str]
             possib_dept = seccion.get("departamento", [])
 
             if isinstance(possib_dept, dict):
+                dept = possib_dept
                 dept_codigo = dept.get("codigo", "")
                 dept_nombre = dept.get("nombre", "")
 

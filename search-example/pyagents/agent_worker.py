@@ -10,9 +10,11 @@ from httpx._urlparse import urlparse
 from pypdf import PdfReader
 from qdrant_client import QdrantClient
 
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date, timezone
+import time as time_to_sleep
 import dotenv
 import os
+import shutil
 
 from sentence_transformers import SentenceTransformer
 from tqdm import tqdm
@@ -20,6 +22,8 @@ from tqdm import tqdm
 from db import upsert_chunks, ensure_collection
 from parser import flatten_boe_payload
 from datetime import datetime
+
+
 
 
 def str_pregenerate_date(d) -> str:
@@ -200,6 +204,7 @@ def ingest_boe_date_to_qdrant(
 
 
     upsert_chunks(client, collection_name, embedder, chunk_payloads, batch_size=128)
+    shutil.rmtree(out_dir, ignore_errors=True)
 
     print(f"Done. Upserted {len(chunk_payloads)} chunks into '{collection_name}'.")
 
@@ -246,30 +251,63 @@ def read_or_create(path: Path, default_entry: str, encoding="utf-8"):
         path.write_text(default_entry, encoding=encoding)
         return default_entry
 
+def coerce_to_date(value, default: date | None = None) -> date:
+    """Convierte value a date. Admite date, datetime, timestamp numérico o string ISO.
+       Si no puede, devuelve default (o date.today() si default es None)."""
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, tz=timezone.utc).date()
+    if isinstance(value, str):
+        # intentos razonables
+        try:
+            return datetime.fromisoformat(value).date()
+        except Exception:
+            # formatos comunes adicionales
+            for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%dT%H:%M:%S",
+                        "%Y-%m-%dT%H:%M:%S.%fZ"):
+                try:
+                    return datetime.strptime(value, fmt).date()
+                except ValueError:
+                    pass
+    return default or date.today()
+
 def run_batch():
     qdrant_host = os.environ.get("QDRANT_HOST","0.0.0.0")
     qdrant_port = int(os.environ.get("QDRANT_PORT",6334))
     collection_name= "boe_disposiciones"
     print(f"Using this host and port for db {qdrant_host}:{qdrant_port} ")
 
-
+    CONSTANT_INIT_DATE = coerce_to_date("19900101")
     embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")  # 384 dims
     client = QdrantClient(host=qdrant_host, grpc_port=qdrant_port, prefer_grpc=True)
     ensure_collection(client, collection_name, vector_size=384)
-
-    last_day_not_updated = read_or_create(BATCH_REFERENCE_DATE, INIT_REFERENCE_DATA) - timedelta(day=1)
-    retries = 0
-    while retries < 20:
-        try:
-            str_last_not_updated = last_day_not_updated.strftime("%Y%m%d")
-            print(f"Retrieving data from {str_last_not_updated}...")
-            ingest_boe_date_to_qdrant(client, embedder, str_last_not_updated, collection_name)
-            write_or_create(BATCH_REFERENCE_DATE, str_last_not_updated) - timedelta(days=1)
-            print("sleeping")
-            time.sleep(60)
-        except Exception as e:
-            retries+=1
-            traceback.print_exception(e)
+    str_date = read_or_create(BATCH_REFERENCE_DATE, INIT_REFERENCE_DATA)
+    ref_day = coerce_to_date(str_date)
+    while ref_day >= CONSTANT_INIT_DATE:
+        str_date = read_or_create(BATCH_REFERENCE_DATE, INIT_REFERENCE_DATA)
+        ref_day = coerce_to_date(str_date)
+        last_day_not_updated =  ref_day - timedelta(days=1)
+        str_last_not_updated = last_day_not_updated.strftime("%Y%m%d")
+        print(f"Retrieving data from {str_last_not_updated}...")
+        retries = 0
+        working = False
+        while not working and retries < 20:
+            try:
+                ingest_boe_date_to_qdrant(client, embedder, str_last_not_updated, collection_name)
+                time_to_sleep.sleep(1)
+            except Exception as e:
+                print(f"trying number {retries}")
+                retries += 1
+                traceback.print_exception(e)
+            else:
+                working = True
+        str_date = write_or_create(BATCH_REFERENCE_DATE, str_last_not_updated)
+        ref_day = coerce_to_date(str_date)
+        print("sleeping for the next try in 60 seconds...")
+        time_to_sleep.sleep(60)
 
 
 

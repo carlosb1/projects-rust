@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_client = Arc::new(Mutex::new(db::Client::new(qdrant_host.as_str(), qdrant_port, None)?));
     let app_state = Arc::new(AppState { tx: tx.clone() , db_client});
 
-    let static_dir = get_service(ServeDir::new("../webapp/dist/public"))
+    let static_dir = get_service(ServeDir::new("./dist"))
         .handle_error(|err| async move {
             (StatusCode::INTERNAL_SERVER_ERROR, format!("serve error: {err}"))
         });
