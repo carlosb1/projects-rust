@@ -7,7 +7,7 @@ grpcio==1.66.2
 parver==0.5
 protobuf==4.25.8
 pulumi==3.177.0
-pulumi_aws==7.7.0
+pulumi_aws==6.82.2
 pulumi_docker==4.7.0
 python-dotenv==1.1.1
 PyYAML==6.0.2

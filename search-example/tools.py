@@ -4,6 +4,7 @@ from typing import Dict, Any, Tuple
 import pulumi
 import pulumi_aws as aws
 import pulumi_docker as docker
+from pulumi import log as pulumi_log
 from pulumi_docker import RegistryArgs
 import base64
 import os
@@ -268,3 +269,21 @@ def make_alb_questdb(name, app_vpc, subnets, security_groups, port, protocol):
         container_port=port,
     )]
     return (alb, listener, load_balancers)
+
+
+# -------- util para resolver imágenes ECR sin romper preview ----------
+def get_image_uri_safe(repo: aws.ecr.GetRepositoryResult, tag: str) -> str:
+    """
+    Intenta resolver @digest para inmutabilidad; si no existe la tag o falla la invocación,
+    usa :tag (deja avanzar el plan).
+    """
+    # Fallback por defecto
+    uri = f"{repo.repository_url}:{tag}"
+    try:
+        img = aws.ecr.get_image(repository_name=repo.name, image_tag=tag)
+        uri = f"{repo.repository_url}@{img.image_digest}"
+        pulumi_log.info(f"Resolved ECR image digest for {repo.name}:{tag}")
+    except Exception as e:
+        pulumi_log.warn(f"No se pudo resolver digest de {repo.name}:{tag}. Usaré la tag. Detalle: {e}")
+    return uri
+# ---------------------------------------------------------------------
