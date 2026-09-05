@@ -9,6 +9,7 @@ from pulumi_docker import RegistryArgs
 import base64
 import os
 
+asas
 
 def set_up_policy(name, app_ecr_repo):
     return aws.ecr.LifecyclePolicy(

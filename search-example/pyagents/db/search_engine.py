@@ -35,4 +35,3 @@ def ensure_collection(client: QdrantClient, name: str, vector_size: int = 384):
             collection_name=name,
             vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
         )
-

@@ -13,7 +13,7 @@ qdrant_host = os.environ.get("QDRANT_HOST","0.0.0.0")
 qdrant_port = int(os.environ.get("QDRANT_PORT",6333))
 collection_name= "boe_disposiciones"
 
-client = QdrantClient(host=qdrant_host, port=qdrant_port)
+client = QdrantClient(host=qdrant_host, port=qdrant_port,check_compatibility=False)
 
 query = "autoridad portuaria tarifas Baleares"
 

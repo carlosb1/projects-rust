@@ -1,0 +1,271 @@
+# pint_es_aliases.txt
+# Extensión española para el UnitRegistry estándar de Pint.
+#
+# Uso:
+#   from pint import UnitRegistry
+#
+#   ureg = UnitRegistry()
+#   ureg.load_definitions("pint_es_aliases.txt")
+#
+# Después:
+#   ureg("12 kilómetros")
+#   ureg("500 gramos")
+#   ureg("3 litros")
+#
+# NOTA:
+# Pint interpreta unidades; no hace NLP sobre texto libre.
+# Conviene extraer primero la cantidad (spaCy/reglas) y normalizar
+# expresiones como "por", "cuadrados", "cúbicos" o "por ciento".
+
+############################
+# LONGITUD
+############################
+
+@alias meter = metro = metros
+
+kilometro_es = 1000 * meter = _ = kilometro = kilometros = kilómetro = kilómetros
+centimetro_es = 0.01 * meter = _ = centimetro = centimetros = centímetro = centímetros
+milimetro_es = 0.001 * meter = _ = milimetro = milimetros = milímetro = milímetros
+micrometro_es = 1e-6 * meter = _ = micrometro = micrometros = micrómetro = micrómetros
+nanometro_es = 1e-9 * meter = _ = nanometro = nanometros = nanómetro = nanómetros
+
+@alias inch = pulgada = pulgadas
+@alias foot = pie = pies
+@alias yard = yarda = yardas
+@alias mile = milla = millas
+@alias nautical_mile = milla_nautica = millas_nauticas = milla_náutica = millas_náuticas
+
+############################
+# ÁREA
+############################
+
+metro_cuadrado = meter ** 2 = _ = metros_cuadrados
+kilometro_cuadrado = 1e6 * meter ** 2 = _ = kilometros_cuadrados = kilómetros_cuadrados
+centimetro_cuadrado = 1e-4 * meter ** 2 = _ = centimetros_cuadrados = centímetros_cuadrados
+milimetro_cuadrado = 1e-6 * meter ** 2 = _ = milimetros_cuadrados = milímetros_cuadrados
+
+@alias hectare = hectarea = hectareas = hectárea = hectáreas
+
+############################
+# VOLUMEN
+############################
+
+@alias liter = litro = litros
+
+mililitro_es = 1e-3 * liter = _ = mililitro = mililitros
+centilitro_es = 1e-2 * liter = _ = centilitro = centilitros
+decilitro_es = 1e-1 * liter = _ = decilitro = decilitros
+microlitro_es = 1e-6 * liter = _ = microlitro = microlitros
+
+metro_cubico = meter ** 3 = _ = metros_cubicos = metro_cúbico = metros_cúbicos
+centimetro_cubico = 1e-6 * meter ** 3 = _ = centimetros_cubicos = centímetro_cúbico = centímetros_cúbicos
+milimetro_cubico = 1e-9 * meter ** 3 = _ = milimetros_cubicos = milímetro_cúbico = milímetros_cúbicos
+
+############################
+# MASA
+############################
+
+@alias gram = gramo = gramos
+
+kilogramo_es = 1000 * gram = _ = kilogramo = kilogramos
+miligramo_es = 1e-3 * gram = _ = miligramo = miligramos
+microgramo_es = 1e-6 * gram = _ = microgramo = microgramos
+
+@alias metric_ton = tonelada = toneladas = tonelada_metrica = toneladas_metricas = tonelada_métrica = toneladas_métricas
+@alias pound = libra = libras
+@alias ounce = onza = onzas
+
+############################
+# TIEMPO
+############################
+
+@alias second = segundo = segundos
+@alias minute = minuto = minutos
+@alias hour = hora = horas
+@alias day = dia = dias = día = días
+@alias week = semana = semanas
+@alias month = mes = meses
+@alias year = ano = anos = año = años
+@alias century = siglo = siglos
+@alias millennium = milenio = milenios
+
+milisegundo_es = 1e-3 * second = _ = milisegundo = milisegundos
+microsegundo_es = 1e-6 * second = _ = microsegundo = microsegundos
+nanosegundo_es = 1e-9 * second = _ = nanosegundo = nanosegundos
+
+############################
+# VELOCIDAD
+############################
+
+kilometro_por_hora = kilometro_es / hour = _ = kilometros_por_hora = kilómetros_por_hora = km_por_hora
+metro_por_segundo = meter / second = _ = metros_por_segundo = m_por_segundo
+kilometro_por_segundo = kilometro_es / second = _ = kilometros_por_segundo = kilómetros_por_segundo = km_por_segundo
+
+############################
+# ACELERACIÓN
+############################
+
+metro_por_segundo_cuadrado = meter / second ** 2 = _ = metros_por_segundo_cuadrado = metros_por_segundo_al_cuadrado
+
+############################
+# TEMPERATURA
+############################
+
+# Para temperatura usamos aliases porque Celsius/Fahrenheit son unidades
+# con offset y ya están correctamente definidas por Pint.
+
+@alias degree_Celsius = grado_celsius = grados_celsius
+@alias degree_Fahrenheit = grado_fahrenheit = grados_fahrenheit
+@alias degree_Rankine = grado_rankine = grados_rankine
+
+############################
+# ÁNGULO
+############################
+
+@alias degree = grado = grados
+@alias radian = radian_es = radianes = radián
+
+############################
+# FRECUENCIA
+############################
+
+@alias hertz = hercio = hercios
+
+kilohercio = 1000 * hertz = _ = kilohercios
+megahercio = 1e6 * hertz = _ = megahercios
+gigahercio = 1e9 * hertz = _ = gigahercios
+
+############################
+# FUERZA
+############################
+
+@alias newton = newton_es = newtons
+
+kilonewton_es = 1000 * newton = _ = kilonewton = kilonewtons
+
+############################
+# ENERGÍA
+############################
+
+@alias joule = julio = julios
+
+kilojulio_es = 1000 * joule = _ = kilojulio = kilojulios
+megajulio_es = 1e6 * joule = _ = megajulio = megajulios
+
+@alias calorie = caloria = calorias = caloría = calorías
+
+kilocaloria_es = 1000 * calorie = _ = kilocaloria = kilocalorias = kilocaloría = kilocalorías
+
+@alias watt_hour = vatio_hora = vatios_hora
+
+kilovatio_hora = 1000 * watt_hour = _ = kilovatios_hora
+megavatio_hora = 1e6 * watt_hour = _ = megavatios_hora
+
+############################
+# POTENCIA
+############################
+
+@alias watt = vatio = vatios
+
+kilovatio_es = 1000 * watt = _ = kilovatio = kilovatios
+megavatio_es = 1e6 * watt = _ = megavatio = megavatios
+gigavatio_es = 1e9 * watt = _ = gigavatio = gigavatios
+
+############################
+# PRESIÓN
+############################
+
+@alias pascal = pascal_es = pascales
+
+kilopascal_es = 1000 * pascal = _ = kilopascal = kilopascales
+hectopascal_es = 100 * pascal = _ = hectopascal = hectopascales
+megapascal_es = 1e6 * pascal = _ = megapascal = megapascales
+
+@alias atmosphere = atmosfera = atmosferas = atmósfera = atmósferas
+
+############################
+# ELECTRICIDAD
+############################
+
+@alias ampere = amperio = amperios
+@alias volt = voltio = voltios
+@alias ohm = ohmio = ohmios
+@alias coulomb = culombio = culombios
+@alias farad = faradio = faradios
+@alias henry = henrio = henrios
+@alias siemens = siemens_es
+@alias weber = weber_es = webers
+@alias tesla = tesla_es = teslas
+
+miliamperio = 1e-3 * ampere = _ = miliamperios
+microamperio = 1e-6 * ampere = _ = microamperios
+miliamperio_hora = 1e-3 * ampere * hour = _ = miliamperios_hora
+
+kilovoltio = 1000 * volt = _ = kilovoltios
+milivoltio = 1e-3 * volt = _ = milivoltios
+
+############################
+# INFORMACIÓN DIGITAL
+############################
+
+@alias byte = byte_es = octeto = octetos
+@alias bit = bit_es
+
+kilobyte_es = 1000 * byte = _ = kilobyte_espanol
+megabyte_es = 1e6 * byte = _ = megabyte_espanol
+gigabyte_es = 1e9 * byte = _ = gigabyte_espanol
+terabyte_es = 1e12 * byte = _ = terabyte_espanol
+
+kibibyte_es = 1024 * byte = _ = kibibyte_espanol
+mebibyte_es = 1024 * kibibyte_es = _ = mebibyte_espanol
+gibibyte_es = 1024 * mebibyte_es = _ = gibibyte_espanol
+
+############################
+# CANTIDAD DE SUSTANCIA
+############################
+
+@alias mole = mol_es = moles
+
+milimol_es = 1e-3 * mole = _ = milimol = milimoles
+micromol_es = 1e-6 * mole = _ = micromol = micromoles
+
+############################
+# PORCENTAJES / RATIOS
+############################
+
+@alias percent = porcentaje = porcentajes = porciento
+@alias permille = por_mil = promil
+
+############################
+# ILUMINACIÓN
+############################
+
+@alias candela = candela_es = candelas
+
+############################
+# RADIOACTIVIDAD / DOSIS
+############################
+
+@alias becquerel = becquerelio = becquerelios
+@alias gray = gray_es = grays
+@alias sievert = sievert_es = sieverts
+
+############################
+# NORMALIZACIONES NLP RECOMENDADAS
+############################
+#
+# Pint no interpreta directamente preposiciones/adjetivos del español.
+# Antes de crear la Quantity puedes transformar:
+#
+#   "12 kilómetros por hora" -> "12 kilometro_por_hora"
+#   "40 metros cuadrados"    -> "40 metro_cuadrado"
+#   "3 metros cúbicos"       -> "3 metro_cubico"
+#   "25 grados Celsius"      -> "25 grado_celsius"
+#   "15 por ciento"          -> "15 percent"
+#   "2 kilovatios hora"      -> "2 kilovatio_hora"
+#
+# Para un extractor de texto libre:
+#
+#   texto -> spaCy/reglas -> (valor, unidad textual)
+#         -> normalización española -> Pint
+#

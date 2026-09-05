@@ -1,3 +1,13 @@
+[ ] - anyadir postgres,  con axum, poner los .sql, etc...
+[ ] - poner en python para ajustar fragmentos
+[ ] - quitar parametros redundantes a salvar el json
+[ ] - mirar, de montar el servidor mcp
+[ ] - montar agente download
+[ ] - montar agente investigator
+[ ] - montar agente review
+arreglar pulumi
+
+
  # AWS Python S3 Bucket Pulumi Template
 
  A minimal Pulumi template for provisioning a single AWS S3 bucket using Python.
