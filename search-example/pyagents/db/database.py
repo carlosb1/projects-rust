@@ -27,22 +27,24 @@ class ChunkRepository:
 
         self.conn.commit()
 
-    def insert(self, db_entries: list[DBEntry]):
+    def insert(self, db_entries: list[DBEntry]) -> None:
         with self.conn.cursor() as cursor:
             cursor.executemany(
                 """
-                INSERT INTO chunks (
-                    source_url,
-                    chunk_idx,
-                    text
-                )
-                VALUES (%s, %s, %s)
-                ON CONFLICT (source_url, chunk_idx)
-                DO UPDATE SET
+                INSERT INTO chunks (id,
+                                    source_url,
+                                    chunk_idx,
+                                    text)
+                VALUES (%s, %s, %s, %s) ON CONFLICT (id)
+                DO
+                UPDATE SET
+                    source_url = EXCLUDED.source_url,
+                    chunk_idx = EXCLUDED.chunk_idx,
                     text = EXCLUDED.text
                 """,
                 [
                     (
+                        str(entry.id),
                         entry.source_url,
                         entry.chunk_idx,
                         entry.text,
@@ -52,7 +54,6 @@ class ChunkRepository:
             )
 
         self.conn.commit()
-
     def delete_by_source(self, source_url: str):
         with self.conn.cursor() as cursor:
             cursor.execute(

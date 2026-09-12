@@ -4639,6 +4639,7 @@ version = "0.1.0"
 dependencies = [
  "dioxus",
  "gloo-net",
+ "log",
  "serde",
  "serde_json",
  "serde_urlencoded",

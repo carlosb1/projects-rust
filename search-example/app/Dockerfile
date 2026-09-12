@@ -30,6 +30,8 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=builder /app/target/release/app /usr/local/bin/app
+COPY --from=builder /app/dist /app/dist
+
 
 EXPOSE 3000
 

@@ -12,7 +12,7 @@ import os
 from sentence_transformers import SentenceTransformer
 
 from db.database import ChunkRepository
-from db.search_engine import ensure_collection
+from db.search_engine import ensure_collection, wait_for_qdrant
 from downloaders import ingest_boe_date_to_qdrant
 from datetime import datetime
 
@@ -72,24 +72,25 @@ def init():
     embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")  # 384 dims
     client = QdrantClient(host=qdrant_host, grpc_port=qdrant_port, prefer_grpc=True)
 
-    db_conn = psycopg2.connect(database=sql_database,
-                               user=sql_user,
-                               host=sql_host,
-                               password=sql_password,
-                               port=sql_port)
-
     print(f"Using this host and port for db {qdrant_host}:{qdrant_port} for collection {collection_name} ")
     print(f"SQL Database {sql_database} for sql {sql_host}:{sql_port} for database {sql_database} ")
+    print(f"User {sql_user}, Password {sql_password} for database {sql_database}")
 
-    return (embedder, collection_name, client, db_conn)
+
+    #db_conn = psycopg2.connect(database=sql_database,
+    #                           user=sql_user,
+    #                           host=sql_host,
+    #                           password=sql_password,
+    #                           port=sql_port)
+    return (embedder, collection_name, client)
 
 
 def run_batch():
     loaded = dotenv.load_dotenv()
     print(loaded)
-    (embedder, collection_name, client, db_conn) = init()
+    (embedder, collection_name, client) = init()
     ensure_collection(client, collection_name, vector_size=384)
-    chunk_repo = ChunkRepository(db_conn)
+#    chunk_repo = ChunkRepository(db_conn)
 
     str_date = read_or_create(BATCH_REFERENCE_DATE, INIT_REFERENCE_DATA)
     ref_day = coerce_to_date(str_date)
@@ -103,7 +104,7 @@ def run_batch():
         working = False
         while not working and retries < 20:
             try:
-                ingest_boe_date_to_qdrant(client, chunk_repo,  embedder, str_last_not_updated, collection_name)
+                ingest_boe_date_to_qdrant(client,  embedder, str_last_not_updated, collection_name)
                 time_to_sleep.sleep(1)
             except Exception as e:
                 print(f"trying number {retries}")
@@ -119,14 +120,16 @@ def run_batch():
 def run():
     loaded = dotenv.load_dotenv()
     print(loaded)
-    (embedder, collection_name, client, db_conn) = init()
+    (embedder, collection_name, client) = init()
+    wait_for_qdrant(client)
     ensure_collection(client, collection_name, vector_size=384)
-    chunk_repo = ChunkRepository(db_conn)
+#    chunk_repo = ChunkRepository(db_conn)
+    #chunk_repo.create_table()
     # Obtener fecha actual en formato aaaammdd
     now = datetime.today()
     str_now = now.strftime("%Y%m%d")
     print(f"Trying to ingest data for day={str_now}...")
-    ingest_boe_date_to_qdrant(client, chunk_repo, embedder, str_now, collection_name)
+    ingest_boe_date_to_qdrant(client, embedder, str_now, collection_name)
 
 
 

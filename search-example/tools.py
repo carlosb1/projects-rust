@@ -9,7 +9,6 @@ from pulumi_docker import RegistryArgs
 import base64
 import os
 
-asas
 
 def set_up_policy(name, app_ecr_repo):
     return aws.ecr.LifecyclePolicy(
@@ -204,7 +203,7 @@ def make_service(
     )
     return svc, task
 
-def make_alb(name, app_vpc, subnets, security_groups, port, protocol):
+def make_alb(name, app_vpc, subnets, security_groups, port, protocol, path_health="/"):
     alb = aws.lb.LoadBalancer(
         f"{name}-alb",
         load_balancer_type="application",
@@ -215,7 +214,7 @@ def make_alb(name, app_vpc, subnets, security_groups, port, protocol):
     backend_tg = aws.lb.TargetGroup(
         f"{name}-tg",
         port=port, protocol=protocol, target_type="ip", vpc_id=app_vpc.id,
-        health_check=aws.lb.TargetGroupHealthCheckArgs(protocol="HTTP", path="/", port="traffic-port"),
+        health_check=aws.lb.TargetGroupHealthCheckArgs(protocol="HTTP", path=path_health, matcher="200-399", port="traffic-port"),
     )
 
     listener = aws.lb.Listener(

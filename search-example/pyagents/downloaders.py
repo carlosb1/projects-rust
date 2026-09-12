@@ -12,12 +12,15 @@ from qdrant_client import QdrantClient
 from datetime import timedelta
 import shutil
 
+from qdrant_client.conversions.common_types import PointStruct
 from sentence_transformers import SentenceTransformer
+from torch.ao.quantization.backend_config.utils import entry_to_pretty_str
 from tqdm import tqdm
 
 import filters
 from db.database import ChunkRepository
 from db.search_engine import upsert_chunks
+from entities import DBEntry
 from parser import flatten_boe_payload
 
 from tools import create_chunks
@@ -128,7 +131,6 @@ def fetch_boe_sumario(date_yyyymmdd: str) -> Dict[str, Any]:
 
 def ingest_boe_date_to_qdrant(
     client: QdrantClient,
-    chunk_repo: ChunkRepository,
     embedder: SentenceTransformer,
     date_yyyymmdd: str,
     out_dir: str = "./boe_pdfs",
@@ -164,20 +166,13 @@ def ingest_boe_date_to_qdrant(
 #        pieces = chunk_text(txt, chunk_chars=chunk_chars, overlap=overlap)
         for idx, piece in enumerate(pieces):
             # check text
-            filters.spacy_extract(piece)
-            filters.spacy_matcher(piece)
-            filters.search_dates(piece)
-
-
+            generic_entities = filters.spacy_extract(piece)
+            date_entities = filters.search_dates(piece)
             ###
             for r_index in ref_indices:
                 r = rows[r_index]
                 meta = {
                     # Provenance
-                    "source_url": url,
- #                   "page": page_num,
-                    "chunk_idx": idx,
-                    # BOE fields
                     "publicacion": r.get("publicacion"),
                     "fecha_publicacion": r.get("fecha_publicacion"),
                     "diario_numero": r.get("diario_numero"),
@@ -187,8 +182,14 @@ def ingest_boe_date_to_qdrant(
                     "departamento_codigo": r.get("departamento_codigo"),
                     "departamento_nombre": r.get("departamento_nombre"),
                     "epigrafe_nombre": r.get("epigrafe_nombre"),
-                    "item_identificador": r.get("item_identificador"),
+                    "iteme_url": url,
+                    "chunk_idx": idx,
+                    **generic_entities,
+                    "dates": date_entities,
+                    # BOE fields
+                    "public_identificador": r.get("item_identificador"),
                     "item_titulo": r.get("item_titulo"),
+                    "paragraph": piece
                 }
                 chunk_payloads.append((piece, meta))
 
@@ -198,6 +199,38 @@ def ingest_boe_date_to_qdrant(
 
 
     upsert_chunks(client, collection_name, embedder, chunk_payloads, batch_size=128)
+    #update_databases()
     shutil.rmtree(out_dir, ignore_errors=True)
 
     print(f"Done. Upserted {len(chunk_payloads)} chunks into '{collection_name}'.")
+
+def new_uuid(payload: Dict[str, Any]) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_URL, payload["source_url"] + f'/{payload["page"]}/{payload["chunk_idx"]}')
+
+def update_databases(
+    qdrant_client: QdrantClient,
+    chunk_repo: ChunkRepository,
+    collection: str,
+    embedder: SentenceTransformer,
+    chunks: List[Tuple[str, Dict[str, Any]]],  # (text, payload)
+    batch_size: int = 128,
+):
+    # Embed and upload in batches
+    for i in tqdm(range(0, len(chunks), batch_size), desc="Upserting to databases"):
+        batch = chunks[i:i+batch_size]
+
+        texts = [t for t, _ in batch]
+        vecs = embedder.encode(texts, show_progress_bar=False, convert_to_numpy=True, normalize_embeddings=True)
+        points_to_qdrant = []
+        db_inserts: List[DBEntry] = []
+        for (text, payload), vec in zip(batch, vecs):
+            pid = new_uuid(payload)
+            # qdrant entry
+            p = PointStruct(id=str(pid), vector=vec.tolist(), payload={**payload, "text": text})
+            points_to_qdrant.append(p)
+            # db entry
+            entry = DBEntry(id=pid, source_url=payload["source_url"], page=payload["page"], chunk_idx=payload["chunk_idx"], text=text)
+            db_inserts.append(entry)
+
+        chunk_repo.insert(db_inserts)
+        qdrant_client.upsert(collection_name=collection, points=points_to_qdrant)

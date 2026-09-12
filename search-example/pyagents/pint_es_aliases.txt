@@ -76,24 +76,6 @@ microgramo_es = 1e-6 * gram = _ = microgramo = microgramos
 @alias ounce = onza = onzas
 
 ############################
-# TIEMPO
-############################
-
-@alias second = segundo = segundos
-@alias minute = minuto = minutos
-@alias hour = hora = horas
-@alias day = dia = dias = día = días
-@alias week = semana = semanas
-@alias month = mes = meses
-@alias year = ano = anos = año = años
-@alias century = siglo = siglos
-@alias millennium = milenio = milenios
-
-milisegundo_es = 1e-3 * second = _ = milisegundo = milisegundos
-microsegundo_es = 1e-6 * second = _ = microsegundo = microsegundos
-nanosegundo_es = 1e-9 * second = _ = nanosegundo = nanosegundos
-
-############################
 # VELOCIDAD
 ############################
 

@@ -8,7 +8,7 @@ use axum::http::StatusCode;
 use axum::{Json, Router};
 use axum::routing::{get, get_service};
 use axum_extra::extract::Query;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Sender;
 use tower_http::services::{ServeDir, ServeFile};
@@ -29,11 +29,26 @@ struct Q {
 }
 
 
-
+//TODO add endpoints for agents
 async fn search(State(arc_state): State<Arc<AppState>>,
                 Query(mut params):  Query<Q>) -> Result<Json<Vec<SearchResult>>, StatusCode> { ;
+    tracing::info!("search params: {:?}", params);
     let res = arc_state.db_client.lock().await.search(params.q).await.map_err(|e| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(res))
+}
+
+#[derive(Serialize)]
+struct HealthStatus {
+    status: String,
+}
+
+async fn health_check() -> Result<Json<HealthStatus>, StatusCode> {
+    let data = HealthStatus {
+        status: "OK".to_string(),
+    };
+
+    // Debes envolver el Json dentro de Ok()
+    Ok(Json(data))
 }
 
 #[tokio::main]
@@ -62,8 +77,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             (StatusCode::INTERNAL_SERVER_ERROR, format!("serve error: {err}"))
         });
 
+    //TODO Testing objective
+    use tower_http::cors::CorsLayer;
+
     let app = Router::new()
         .route("/search", get(search))
+        .route("/health", get(health_check))
+        .layer(CorsLayer::permissive())
         .fallback_service(static_dir)
         .with_state(app_state);
 

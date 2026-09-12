@@ -31,10 +31,12 @@ impl Client {
         Ok(Client{client, model})
     }
 
-
+    //TODO add pagination
      pub async fn search(&mut self, query: Vec<String>) -> anyhow::Result<Vec<SearchResult>> {
         let mut search_results = Vec::new();
         let embed = self.model.embed(query, None)?;
+
+        //ADD option for ands and paging, intersection of values.
         for x in embed {
             let embed = x.as_slice();
             let search_request = SearchPointsBuilder::new(
@@ -51,8 +53,9 @@ impl Client {
                 let mut payloads_to_return = Vec::new();
                 for (key,val) in x.payload.iter() {
                     let k = key.to_string();
-                    let v = val.to_string();
-                    payloads_to_return.push((k,v));
+                    if let Some(v) = val.as_str()  {
+                        payloads_to_return.push((k,v.clone()));
+                    }
                 }
                 entries_to_return.push(EntryResult{score,payload: payloads_to_return});
             }

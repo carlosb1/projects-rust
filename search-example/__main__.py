@@ -238,7 +238,7 @@ else :
     port_2 = 6334
     port_mappings=[{"containerPort": port, "protocol": "tcp"},{"containerPort": port_2, "protocol": "tcp"} ]
 
-    (alb_questdb, _, load_balancers) = make_alb(name, app_vpc, subnets, security_groups, port, "HTTP")
+    (alb_qdrant, _, load_balancers) = make_alb(name, app_vpc, subnets, security_groups, port, "HTTP")
     (service, definition) = make_service(app_cluster, app_exec_role, app_task_role,
                     name,
                     subnets,
@@ -282,7 +282,7 @@ else :
     port = 3000
 
     port_mappings=[{"containerPort": port, "protocol": "tcp"}]
-    (alb, _, load_balancers) = make_alb(name, app_vpc, subnets, security_groups, port, "HTTP")
+    (alb, _, load_balancers) = make_alb(name, app_vpc, subnets, security_groups, port, "HTTP", path_health="/index.html")
     make_service(app_cluster, app_exec_role, app_task_role,
                     name,
                     subnets,
@@ -298,5 +298,8 @@ else :
                     load_balancers,
                     app_sd)
 
-    frontend_public_url = pulumi.Output.concat("http://", alb.dns_name, ":3000")
+    frontend_public_url = pulumi.Output.concat("http://", alb.dns_name, ":3000/index.html")
     pulumi.export("frontend_public_url", frontend_public_url)
+
+    qdrant_public_url = pulumi.Output.concat("http://", alb_qdrant.dns_name, ":6333/dashboard")
+    pulumi.export("qdrant_public_url", qdrant_public_url)

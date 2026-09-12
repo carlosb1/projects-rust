@@ -12,6 +12,12 @@
     --color-gray-500: oklch(55.1% 0.027 264.364);
     --color-gray-600: oklch(44.6% 0.03 256.802);
     --color-gray-700: oklch(37.3% 0.034 259.733);
+    --color-red-500: oklch(63.7% 0.237 25.331);
+    --color-blue-500: oklch(62.3% 0.214 259.815);
+    --color-green-500: oklch(72.3% 0.219 149.579);
+    --color-boe: oklch(62.3% 0.214 259.815);
+    --color-law: oklch(72.3% 0.219 149.579);
+    --color-warning: oklch(76.9% 0.188 70.08);
     --color-black: #000;
     --color-white: #ffffff;
     --spacing: 0.25rem;
@@ -261,11 +267,57 @@
   .bg-black {
     background-color: var(--color-black);
   }
+  .bg-red-600 {
+    background-color: var(--color-red-600);
+  }
+
+  .bg-red-500 {
+    background-color: var(--color-red-500);
+  }
+
   .bg-gray-50 {
     background-color: var(--color-gray-50);
   }
+
+  .bg-gray-500 {
+    background-color: var(--color-gray-500);
+  }
+
+  .bg-gray-600 {
+    background-color: var(--color-gray-600);
+  }
+
+  .bg-gray-700 {
+    background-color: var(--color-gray-700);
+  }
+
+  .bg-blue-500 {
+    background-color: var(--color-blue-500);
+  }
+
+  .bg-green-500 {
+    background-color: var(--color-green-500);
+  }
+
+  /* Tus colores personalizados */
+
+  .bg-boe {
+    background-color: var(--color-boe);
+  }
+
+  .bg-law {
+    background-color: var(--color-law);
+  }
+
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
   .bg-white {
     background-color: var(--color-white);
+  }
+
+  .bg-blue-500 {
+    background-color: var(--color-blue-500);
   }
   .p-4 {
     padding: calc(var(--spacing) * 4);
