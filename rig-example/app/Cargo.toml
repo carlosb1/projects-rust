@@ -1,0 +1,13 @@
+[package]
+name = "rig-vllm-example"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+rig = "0.42"
+tokio = { version = "1", features = ["full"] }
+axum = "0.8.9"
+tracing = "0.1.44"
+serde_json = "1.0.151"
+serde = "1.0.229"

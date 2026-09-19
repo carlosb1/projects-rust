@@ -1,0 +1,57 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:v0.9.2
+    gpus: all
+    ipc: host
+
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+
+    command:
+      - --model
+      - Qwen/Qwen3-0.6B
+      - --host
+      - 0.0.0.0
+      - --api-key
+      - local-token
+      - --gpu-memory-utilization
+      - "0.70"
+      - --max-model-len
+      - "8192"
+      - --max-num-seqs
+      - "32"
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  app:
+    build:
+      context: ./app
+
+    environment:
+      VLLM_BASE_URL: http://vllm:8000/v1
+      VLLM_API_KEY: local-token
+      VLLM_MODEL: Qwen/Qwen3-0.6B
+
+    depends_on:
+      vllm:
+        condition: service_healthy
+
+volumes:
+  huggingface-cache:
