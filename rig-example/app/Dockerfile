@@ -20,4 +20,6 @@ COPY --from=builder \
     /app/target/release/rig-vllm-example \
     /usr/local/bin/app
 
+COPY dist ./dist
+
 CMD ["app"]

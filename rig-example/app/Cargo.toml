@@ -7,7 +7,9 @@ edition = "2024"
 anyhow = "1"
 rig = "0.42"
 tokio = { version = "1", features = ["full"] }
-axum = "0.8.9"
+axum = { version = "0.8.9", features=["multipart"] }
 tracing = "0.1.44"
 serde_json = "1.0.151"
 serde = "1.0.229"
+tracing-subscriber = "0.3.23"
+tower-http = { version = "0.6", features = ["fs"] }

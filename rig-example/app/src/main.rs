@@ -9,41 +9,98 @@ use axum::routing::{get, post};
 use rig::serde::Deserialize;
 use tokio::sync::{broadcast, Mutex};
 use tokio::sync::broadcast::Sender;
+use tower_http::services::{ServeDir, ServeFile};
 
 struct AppState {
     tx: Sender<String>,
     //db_client: Arc<Mutex<db::Client>>,
 }
 
-#[derive(Debug, Deserialize)]
-struct Q {
-    q: Vec<String>,
+
+
+
+//TODO add endpoints for agents
+async fn search(State(arc_state): State<Arc<AppState>>,
+                Query(mut params):  Query<SearchQuery>) -> Json<SearchResponse> {
+    tracing::info!("search params: {:?}", params);
+    let page = params.page.unwrap_or(1);
+    let page_size = params.page_size.unwrap_or(10);
+
+    // llamar Qdrant / DB aquí...
+
+    Json(SearchResponse {
+        items: vec![],
+        page,
+        total_pages: 1,
+        total: 0,
+    })
 }
 
 
+#[derive(Deserialize, Debug)]
+struct SearchQuery {
+    q: String,
+    page: Option<usize>,
+    page_size: Option<usize>,
+}
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 struct SearchResult {
     result: String,
 }
 
-//TODO add endpoints for agents
-async fn search(State(arc_state): State<Arc<AppState>>,
-                Query(mut params):  Query<Q>) -> Result<Json<Vec<SearchResult>>, StatusCode> { ;
-    tracing::info!("search params: {:?}", params);
-    let res = SearchResult {
-        result: format!("You searched for: {:?}", params.q),
-    };
-    //let res = arc_state.db_client.lock().await.search(params.q).await.map_err(|e| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(vec![res]))
+
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SearchResponse {
+    pub items: Vec<SearchResult>,
+    pub page: usize,
+    pub total_pages: usize,
+    pub total: usize,
 }
 
+
+
 #[derive(serde::Serialize)]
-struct HealthStatus {
+    struct HealthStatus {
     status: String,
 }
 
+use axum::extract::Multipart;
+use serde::Serialize;
+
+async fn upload(
+    State(arc_state): State<Arc<AppState>>,
+    mut multipart: Multipart,
+) -> Result<StatusCode, StatusCode> {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?
+    {
+        let filename = field
+            .file_name()
+            .map(ToString::to_string);
+
+        let data = field
+            .bytes()
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        println!(
+            "Received {:?}: {} bytes",
+            filename,
+            data.len()
+        );
+
+        // guardar ZIP / procesarlo / crear job...
+    }
+
+    Ok(StatusCode::ACCEPTED)
+}
+
 async fn health_check() -> Result<Json<HealthStatus>, StatusCode> {
+    tracing::info!("health check");
     let data = HealthStatus {
         status: "OK".to_string(),
     };
@@ -55,12 +112,19 @@ async fn health_check() -> Result<Json<HealthStatus>, StatusCode> {
 
 #[tokio::main]
 async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt::init();
+    tracing::info!("Starting server on port 3000");
+
     // build our application with a single route
     let app = Router::new()
-        .route("/", get(root))
+        //        .route("/", get(root))
         .route("/health", get(health_check))
         .route("/search", get(search))
         .route("/reports", post(post_reports))
+        .fallback_service(
+            ServeDir::new("dist")
+                .not_found_service(ServeFile::new("dist/index.html"))
+        )
         .with_state(Arc::new(AppState {
             tx: broadcast::channel(100).0,
             //db_client: Arc::new(Mutex::new(db::Client::new(qdrant_host.as_str(), qdrant_port, None)?)),
