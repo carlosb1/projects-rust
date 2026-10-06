@@ -8,7 +8,6 @@ import pulumi_aws as aws
 import pulumi_awsx as awsx
 
 
-
 CONTAINER_PORT = 3000
 QDRANT_PORT = 6333
 QDRANT_GRPC_PORT = 6334

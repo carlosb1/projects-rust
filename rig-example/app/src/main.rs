@@ -16,7 +16,53 @@ struct AppState {
     //db_client: Arc<Mutex<db::Client>>,
 }
 
+use dashmap::DashMap;
+use tokio::sync::mpsc;
 
+type QueueId = String;
+
+struct Job {
+    payload: String,
+}
+
+struct JobQueues {
+    queues: DashMap<QueueId, mpsc::Sender<Job>>,
+}
+
+impl JobQueues {
+    fn new() -> Self {
+        Self {
+            queues: DashMap::new(),
+        }
+    }
+
+    fn create_queue(
+        &self,
+        id: QueueId,
+    ) -> mpsc::Receiver<Job> {
+        let (tx, rx) = mpsc::channel(100);
+
+        self.queues.insert(id, tx);
+
+        rx
+    }
+
+    async fn push(
+        &self,
+        id: &str,
+        job: Job,
+    ) -> Result<(), &'static str> {
+        let tx = self
+            .queues
+            .get(id)
+            .ok_or("queue not found")?
+            .clone();
+
+        tx.send(job)
+            .await
+            .map_err(|_| "queue closed")
+    }
+}
 
 
 //TODO add endpoints for agents
@@ -67,7 +113,6 @@ pub struct SearchResponse {
 }
 
 use axum::extract::Multipart;
-use serde::Serialize;
 
 async fn upload(
     State(arc_state): State<Arc<AppState>>,
@@ -87,7 +132,7 @@ async fn upload(
             .await
             .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-        println!(
+        tracing::info!(
             "Received {:?}: {} bytes",
             filename,
             data.len()
@@ -104,8 +149,6 @@ async fn health_check() -> Result<Json<HealthStatus>, StatusCode> {
     let data = HealthStatus {
         status: "OK".to_string(),
     };
-
-    // Debes envolver el Json dentro de Ok()
     Ok(Json(data))
 }
 
@@ -115,12 +158,23 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
     tracing::info!("Starting server on port 3000");
 
-    // build our application with a single route
-    let app = Router::new()
-        //        .route("/", get(root))
+    let queues = Arc::new(JobQueues::new());
+
+    let mut rx = queues.create_queue("model-provisioning".into());
+
+    tokio::spawn(async move {
+        while let Some(job) = rx.recv().await {
+            println!("processing {}", job.payload);
+        }
+    });
+
+    let api_routes = Router::new()
         .route("/health", get(health_check))
         .route("/search", get(search))
-        .route("/reports", post(post_reports))
+        .route("/reports", post(post_reports));
+
+    // build our application with a single route
+    let app = Router::new().nest("/api", api_routes)
         .fallback_service(
             ServeDir::new("dist")
                 .not_found_service(ServeFile::new("dist/index.html"))

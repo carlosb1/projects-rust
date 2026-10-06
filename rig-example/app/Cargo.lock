@@ -5433,6 +5433,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "dashmap",
  "rig",
  "serde",
  "serde_json",
