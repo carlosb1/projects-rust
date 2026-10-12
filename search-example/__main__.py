@@ -45,7 +45,7 @@ if is_push == "true":
     # running infra
     setting_up_infra(urls_with_contexts)
 
-else :
+else:
     ####################################################################
     app_ecr_repo_app = aws.ecr.get_repository(name='search/app')
     app_ecr_repo_pyagents = aws.ecr.get_repository(name='search/pyagents')

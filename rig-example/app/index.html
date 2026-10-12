@@ -1,0 +1,77 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Axum - Upload Reports</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 20px;
+    }
+
+    button { padding: 10px 20px; cursor: pointer; }
+    input { margin: 20px 0; }
+    #result { margin-top: 20px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>Upload Reports</h2>
+  <p>Selecciona un ZIP y envíalo a Axum.</p>
+
+  <form id="upload-form">
+    <input
+      type="file"
+      id="file"
+      name="file"
+      accept=".zip,application/zip"
+      required
+    >
+    <button type="submit">Upload</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById("upload-form");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const file = document.getElementById("file").files[0];
+      const formData = new FormData();
+
+      formData.append("file", file);
+
+      result.textContent = "Enviando...";
+
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/reports",
+          {
+            method: "POST",
+            body: formData
+          }
+        );
+
+        if (response.ok) {
+          result.textContent =
+            `Upload successful! HTTP ${response.status}\n` +
+            `File: ${file.name}\n` +
+            `Size: ${file.size} bytes`;
+        } else {
+          result.textContent =
+            `Upload failed: HTTP ${response.status}`;
+        }
+      } catch (error) {
+        result.textContent = `Network/CORS error: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
+

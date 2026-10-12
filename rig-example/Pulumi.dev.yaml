@@ -1,3 +1,7 @@
 encryptionsalt: v1:X8U1jxpz+ok=:v1:E1y/gPvwrTKHTBOm:IoXORgIVpNmpZflOOYZx4zEg8aezAQ==
 config:
   aws:region: eu-west-1
+  rig-example:rustfsAccessKey:
+    secure: v1:ZKEsLB9GDBjBwBpZ:ffnwRRpQ/HE89SuxtMKxPV4Hq0SmE81T9RQakmcMifXz
+  rig-example:rustfsSecretKey:
+    secure: v1:q+MoQ2ZRgtWbv6W+:54VH37hp1HmsD7aH7/wXI9O/h/SRuZOVRj0af4i4FzEH0iWJPmjTjzh6Vw==

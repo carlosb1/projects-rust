@@ -20,6 +20,7 @@ services:
       - "8192"
       - --max-num-seqs
       - "32"
+      - --enforce-eager
 
     ports:
       - "8000:8000"
@@ -40,18 +41,143 @@ services:
       retries: 30
       start_period: 30s
 
+  # --------------------------------------
+  # SQS compatible message broker
+  # --------------------------------------
+  elasticmq:
+    image: softwaremill/elasticmq-native:latest
+    ports:
+      - "127.0.0.1:9324:9324"
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf:ro
+    networks:
+      - rig-network
+    restart: unless-stopped
+
+  # --------------------------------------
+  # S3 compatible storage
+  # --------------------------------------
+  rustfs:
+    image: rustfs/rustfs:latest
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      RUSTFS_ADDRESS: "0.0.0.0:9000"
+      RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_VOLUMES: "/data"
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?required}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?required}
+    volumes:
+      - ./rustfs_data:/data
+      - ./rustfs_logs:/logs
+    networks:
+      - rig-network
+    restart: unless-stopped
+
+  # --------------------------------------
+  # Vector database
+  # --------------------------------------
+  qdrant:
+    image: qdrant/qdrant:dev
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+    networks:
+      - rig-network
+    restart: unless-stopped
+
+  # --------------------------------------
+  # Axum API
+  # --------------------------------------
   app:
     build:
       context: ./app
-
+    ports:
+      - "127.0.0.1:3000:3000"
     environment:
+      QDRANT_URL: http://qdrant:6333
+
+      SQS_ENDPOINT: http://elasticmq:9324
+      PYTHON_QUEUE_URL: http://elasticmq:9324/000000000000/python-jobs
+      RUST_QUEUE_URL: http://elasticmq:9324/000000000000/rust-jobs
+
+      S3_ENDPOINT: http://rustfs:9000
+      S3_BUCKET: documents
+
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
+      AWS_REGION: eu-west-1
+      AWS_DEFAULT_REGION: eu-west-1
       VLLM_BASE_URL: http://vllm:8000/v1
       VLLM_API_KEY: local-token
       VLLM_MODEL: Qwen/Qwen3-0.6B
 
     depends_on:
-      vllm:
-        condition: service_healthy
+      - qdrant
+      - elasticmq
+      - rustfs
+    networks:
+      - rig-network
+    restart: unless-stopped
+
+  # --------------------------------------
+  # Python worker
+  # --------------------------------------
+  python-worker:
+    build:
+      context: ./pyagents
+    environment:
+      SQS_ENDPOINT: http://elasticmq:9324
+      QUEUE_URL: http://elasticmq:9324/000000000000/python-jobs
+
+      S3_ENDPOINT: http://rustfs:9000
+      S3_BUCKET: documents
+
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
+      AWS_REGION: eu-west-1
+      AWS_DEFAULT_REGION: eu-west-1
+
+    depends_on:
+      - elasticmq
+      - rustfs
+    networks:
+      - rig-network
+    restart: unless-stopped
+
+  # --------------------------------------
+  # Rust worker
+  # --------------------------------------
+  rust-worker:
+    build:
+      context: ./rust-worker
+    environment:
+      SQS_ENDPOINT: http://elasticmq:9324
+      QUEUE_URL: http://elasticmq:9324/000000000000/rust-jobs
+
+      S3_ENDPOINT: http://rustfs:9000
+      S3_BUCKET: documents
+
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
+      AWS_REGION: eu-west-1
+      AWS_DEFAULT_REGION: eu-west-1
+
+    depends_on:
+      - elasticmq
+      - rustfs
+    networks:
+      - rig-network
+    restart: unless-stopped
+
+networks:
+  rig-network:
+    driver: bridge
+
 
 volumes:
   huggingface-cache:

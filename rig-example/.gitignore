@@ -1,4 +1,10 @@
 *.pyc
+.env
+rustfs_data
+rustfs_logs
+qdrant_data
 venv/
 .idea
 */.idea
+app/uploads
+Pulumi.dev.yaml

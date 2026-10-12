@@ -9,6 +9,7 @@ from httpx._urlparse import urlparse
 from pypdf import PdfReader
 from qdrant_client import QdrantClient
 
+
 from datetime import timedelta
 import shutil
 
