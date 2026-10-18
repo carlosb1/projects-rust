@@ -27,7 +27,7 @@ requests == 2.11.1
 gunicorn == 19.9.0
 
 # frontend/node_modules/node-gyp/gyp/setup.py: 7
-setuptools == 40.6.3
+setuptools == 65.5.1
 
 redis == 3.2.1
 
