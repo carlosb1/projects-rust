@@ -1,33 +1,49 @@
 """An AWS Python Pulumi program."""
 
-import os
-import sys
+import json
 
 import pulumi
 import pulumi_aws as aws
 import pulumi_awsx as awsx
 
-import json
-
 from iam import configure_job_roles
 from queues import create_job_queues
-from remotefs import create_rustfs_credentials, create_rustfs_storage, create_efs_policy, create_rustfs_service, \
-    create_rustfs_discovery
+from remotefs import (
+    create_rustfs_credentials,
+    create_rustfs_service,
+    create_rustfs_discovery,
+)
 from workers import create_worker
 from database import create_database
+
 
 CONTAINER_PORT = 3000
 QDRANT_PORT = 6333
 QDRANT_GRPC_PORT = 6334
 
+# Solo para la API, que comparte tarea con Qdrant.
+QDRANT_LOCAL_URL = f"http://127.0.0.1:{QDRANT_PORT}"
 
-def build_and_push_ecr_image(name, repository, context):
-    return awsx.ecr.Image(
-        name,
-        repository_url=repository.url,
-        context=context,
-        platform="linux/amd64",
+# Namespace independiente del utilizado por RustFS.
+QDRANT_PRIVATE_URL = f"http://qdrant.vector.internal:{QDRANT_PORT}"
+
+STORAGE_ENDPOINT = "http://rustfs.rig.internal:9000"
+
+
+def env(name, value):
+    return awsx.ecs.TaskDefinitionKeyValuePairArgs(
+        name=name,
+        value=value,
     )
+
+
+def secret(name, arn):
+    return awsx.ecs.TaskDefinitionSecretArgs(
+        name=name,
+        value_from=arn,
+    )
+
+
 def build_worker_image(name, context):
     repository = awsx.ecr.Repository(
         f"{name}-repository",
@@ -41,21 +57,60 @@ def build_worker_image(name, context):
     )
 
 
+def create_application_execution_role(secret_arns):
+    """Rol utilizado por ECS para iniciar API y workers."""
+
+    role = aws.iam.Role(
+        "application-execution-role",
+        assume_role_policy=json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com",
+                },
+                "Action": "sts:AssumeRole",
+            }],
+        }),
+    )
+
+    base_policy = aws.iam.RolePolicyAttachment(
+        "application-execution-base-policy",
+        role=role.name,
+        policy_arn=(
+            "arn:aws:iam::aws:policy/"
+            "service-role/AmazonECSTaskExecutionRolePolicy"
+        ),
+    )
+
+    secrets_policy = aws.iam.RolePolicy(
+        "application-execution-secrets-policy",
+        role=role.id,
+        policy=pulumi.Output.json_dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Action": "secretsmanager:GetSecretValue",
+                "Resource": secret_arns,
+            }],
+        }),
+    )
+
+    return role, [base_policy, secrets_policy]
 
 
 def up_infra(
     app_image_uri,
-    container_port,
     python_image_uri,
     rust_image_uri,
     queues,
     roles,
     policies,
-    storage_endpoint,
 ):
+    region = "eu-west-1"
 
     # ---------------------------------------------------------
-    # VPC
+    # VPC y cluster
     # ---------------------------------------------------------
 
     vpc = awsx.ec2.Vpc(
@@ -74,108 +129,103 @@ def up_infra(
         ),
     )
 
-    # ---------------------------------------------------------
-    # ECS Cluster
-    # ---------------------------------------------------------
-
-    cluster = aws.ecs.Cluster(
-        "llm-cluster",
-    )
-
+    cluster = aws.ecs.Cluster("llm-cluster")
 
     # ---------------------------------------------------------
-    # Security Group: ALB
-    #
-    # Internet -> ALB :80 axum 6333 qdrant
+    # Grupos de seguridad
     # ---------------------------------------------------------
 
     alb_sg = aws.ec2.SecurityGroup(
         "rig-example-alb-sg",
         vpc_id=vpc.vpc_id,
-        description="Allow HTTP traffic to the application load balancer",
-
-        ingress=[
-            aws.ec2.SecurityGroupIngressArgs(
-                protocol="tcp",
-                from_port=80,
-                to_port=80,
-                cidr_blocks=["0.0.0.0/0"],
-            ),
-            # Internet -> Qdrant dashboard
-            aws.ec2.SecurityGroupIngressArgs(
-                protocol="tcp",
-                from_port=6333,
-                to_port=6333,
-                cidr_blocks=["0.0.0.0/0"],
-            ),
-        ],
-
-        egress=[
-            aws.ec2.SecurityGroupEgressArgs(
-                protocol="-1",
-                from_port=0,
-                to_port=0,
-                cidr_blocks=["0.0.0.0/0"],
-            )
-        ],
+        description="HTTP access to application",
+        ingress=[{
+            "protocol": "tcp",
+            "from_port": 80,
+            "to_port": 80,
+            "cidr_blocks": ["0.0.0.0/0"],
+        }],
+        egress=[{
+            "protocol": "-1",
+            "from_port": 0,
+            "to_port": 0,
+            "cidr_blocks": ["0.0.0.0/0"],
+        }],
     )
-
-    # ---------------------------------------------------------
-    # Security Group: ECS/Fargate
-    #
-    # For 3000 Axum and 6333 Qdrant
-    # ---------------------------------------------------------
+    aws.ec2.SecurityGroupRule(
+        "qdrant-public-ingress",
+        type="ingress",
+        security_group_id=alb_sg.id,
+        protocol="tcp",
+        from_port=QDRANT_PORT,
+        to_port=QDRANT_PORT,
+        cidr_blocks=["0.0.0.0/0"],
+    )
 
     ecs_sg = aws.ec2.SecurityGroup(
         "rig-example-ecs-sg",
         vpc_id=vpc.vpc_id,
-        description="Allow traffic from ALB to ECS tasks",
-        ingress=[
-            # ALB -> Axum
-            aws.ec2.SecurityGroupIngressArgs(
-                protocol="tcp",
-                from_port=3000,
-                to_port=3000,
-                security_groups=[alb_sg.id],
-            ),
-
-            # ALB -> Qdrant dashboard/API
-            aws.ec2.SecurityGroupIngressArgs(
-                protocol="tcp",
-                from_port=6333,
-                to_port=6333,
-                security_groups=[alb_sg.id],
-            ),
-        ],
-
-        egress=[
-            aws.ec2.SecurityGroupEgressArgs(
-                protocol="-1",
-                from_port=0,
-                to_port=0,
-                cidr_blocks=["0.0.0.0/0"],
-            )
-        ],
+        description="Application and workers",
+        # Las reglas de entrada se crean por separado.
+        egress=[{
+            "protocol": "-1",
+            "from_port": 0,
+            "to_port": 0,
+            "cidr_blocks": ["0.0.0.0/0"],
+        }],
     )
 
-    database_secret, api_execution_role, database_dependencies = create_database(
-        vpc.vpc_id, vpc.isolated_subnet_ids, ecs_sg.id,
+    aws.ec2.SecurityGroupRule(
+        "qdrant-from-alb",
+        type="ingress",
+        security_group_id=ecs_sg.id,
+        source_security_group_id=alb_sg.id,
+        protocol="tcp",
+        from_port=QDRANT_PORT,
+        to_port=QDRANT_PORT,
     )
 
-    # Security group for rust fs
+    api_ingress = aws.ec2.SecurityGroupRule(
+        "api-from-alb",
+        type="ingress",
+        security_group_id=ecs_sg.id,
+        source_security_group_id=alb_sg.id,
+        protocol="tcp",
+        from_port=CONTAINER_PORT,
+        to_port=CONTAINER_PORT,
+    )
+
+    qdrant_rest_ingress = aws.ec2.SecurityGroupRule(
+        "qdrant-rest-from-workers",
+        type="ingress",
+        security_group_id=ecs_sg.id,
+        source_security_group_id=ecs_sg.id,
+        protocol="tcp",
+        from_port=QDRANT_PORT,
+        to_port=QDRANT_PORT,
+    )
+
+    qdrant_grpc_ingress = aws.ec2.SecurityGroupRule(
+        "qdrant-grpc-from-workers",
+        type="ingress",
+        security_group_id=ecs_sg.id,
+        source_security_group_id=ecs_sg.id,
+        protocol="tcp",
+        from_port=QDRANT_GRPC_PORT,
+        to_port=QDRANT_GRPC_PORT,
+    )
+
     rustfs_sg = aws.ec2.SecurityGroup(
         "rustfs-sg",
         vpc_id=vpc.vpc_id,
-        description="RustFS Fargate service",
+        description="RustFS service",
         ingress=[
-            # Dashboard desde el ALB
             {
                 "protocol": "tcp",
                 "from_port": 9001,
                 "to_port": 9001,
                 "security_groups": [alb_sg.id],
             },
-            # API S3 desde tus aplicaciones y workers
             {
                 "protocol": "tcp",
                 "from_port": 9000,
@@ -191,28 +241,65 @@ def up_infra(
         }],
     )
 
-    console_ingress = aws.ec2.SecurityGroupRule(
-        "rustfs-console-ingress",
-        type="ingress",
-        security_group_id=alb_sg.id,
-        protocol="tcp",
-        from_port=9001,
-        to_port=9001,
-        cidr_blocks=["0.0.0.0/0"],
+    # ---------------------------------------------------------
+    # Base de datos y secretos
+    # ---------------------------------------------------------
+
+    credentials = create_rustfs_credentials()
+
+    database_secret, _, database_dependencies = create_database(
+        vpc.vpc_id,
+        vpc.isolated_subnet_ids,
+        ecs_sg.id,
     )
 
+    # Un execution role compartido por API y workers.
+    execution_role, execution_dependencies = (
+        create_application_execution_role([
+            database_secret.arn,
+            credentials.access_key_secret.arn,
+            credentials.secret_key_secret.arn,
+        ])
+    )
 
     # ---------------------------------------------------------
-    # Application Load Balancer
+    # Service Discovery
     # ---------------------------------------------------------
-    # IMPORTANT: HERE  we automatize the creation of the target group, listener etc.. for axum and its ports
+
+    rustfs_discovery = create_rustfs_discovery(vpc.vpc_id)
+
+    qdrant_namespace = aws.servicediscovery.PrivateDnsNamespace(
+        "qdrant-private-namespace",
+        name="vector.internal",
+        vpc=vpc.vpc_id,
+    )
+
+    qdrant_discovery = aws.servicediscovery.Service(
+        "qdrant-discovery",
+        name="qdrant",
+        dns_config={
+            "namespace_id": qdrant_namespace.id,
+            "dns_records": [{
+                "type": "A",
+                "ttl": 10,
+            }],
+            "routing_policy": "MULTIVALUE",
+        },
+        health_check_custom_config={
+            "failure_threshold": 1,
+        },
+    )
+
+    # ---------------------------------------------------------
+    # ALB para la API
+    # ---------------------------------------------------------
+
     lb = awsx.lb.ApplicationLoadBalancer(
         "rig-example-lb",
         subnet_ids=vpc.public_subnet_ids,
         security_groups=[alb_sg.id],
-
         default_target_group={
-            "port": container_port,
+            "port": CONTAINER_PORT,
             "protocol": "HTTP",
             "target_type": "ip",
             "health_check": {
@@ -224,67 +311,23 @@ def up_infra(
     )
 
     # ---------------------------------------------------------
-    # Qdrant Target Group
-    #
-    # ALB :6333 -> Qdrant :6333
+    # Consola RustFS
     # ---------------------------------------------------------
 
-    qdrant_target_group = aws.lb.TargetGroup(
-        "qdrant-target-group",
+    # Limita el acceso a tu IP:
+    # pulumi config set adminCidr TU_IP_PUBLICA/32
+    config = pulumi.Config()
+    admin_cidr = config.get("adminCidr") or "0.0.0.0/0"
 
-        vpc_id=vpc.vpc_id,
-
-        port=QDRANT_PORT,
-        protocol="HTTP",
-
-        # Required for Fargate / awsvpc
-        target_type="ip",
-
-        health_check=aws.lb.TargetGroupHealthCheckArgs(
-            path="/",
-            protocol="HTTP",
-            matcher="200",
-        ),
+    console_ingress = aws.ec2.SecurityGroupRule(
+        "rustfs-console-ingress",
+        type="ingress",
+        security_group_id=alb_sg.id,
+        protocol="tcp",
+        from_port=9001,
+        to_port=9001,
+        cidr_blocks=[admin_cidr],
     )
-
-    # ---------------------------------------------------------
-    # ALB Listener for Qdrant
-    #
-    # http://<alb>:6333
-    # ---------------------------------------------------------
-
-    qdrant_listener = aws.lb.Listener(
-        "qdrant-listener",
-
-        load_balancer_arn=lb.load_balancer.arn,
-
-        port=QDRANT_PORT,
-        protocol="HTTP",
-
-        default_actions=[
-            aws.lb.ListenerDefaultActionArgs(
-                type="forward",
-                target_group_arn=qdrant_target_group.arn,
-            )
-        ],
-    )
-
-
-    rustfs_task_role = aws.iam.Role(
-        "rustfs-task-role",
-        assume_role_policy=json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": "ecs-tasks.amazonaws.com"
-                },
-                "Action": "sts:AssumeRole",
-            }],
-        }),
-    )
-
-
 
     rustfs_tg = aws.lb.TargetGroup(
         "rustfs-console-tg",
@@ -310,119 +353,118 @@ def up_infra(
         }],
     )
 
+#### target groups for qdrant
+
+    qdrant_target_group = aws.lb.TargetGroup(
+        "qdrant-target-group",
+        vpc_id=vpc.vpc_id,
+        port=QDRANT_PORT,
+        protocol="HTTP",
+        target_type="ip",
+        health_check={
+            "path": "/",
+            "protocol": "HTTP",
+            "matcher": "200",
+        },
+    )
+
+    qdrant_listener = aws.lb.Listener(
+        "qdrant-listener",
+        load_balancer_arn=lb.load_balancer.arn,
+        port=QDRANT_PORT,
+        protocol="HTTP",
+        default_actions=[
+            aws.lb.ListenerDefaultActionArgs(
+                type="forward",
+                target_group_arn=qdrant_target_group.arn,
+            ),
+        ],
+    )
+
     # ---------------------------------------------------------
-    # ECS Fargate Service
-    #
-    # One task containing:
-    #
-    #   +-----------------------------+
-    #   | Axum           Qdrant        |
-    #   | :3000          :6333         |
-    #   |    |              ^          |
-    #   |    +--------------+          |
-    #   |       localhost              |
-    #   +-----------------------------+
+    # API + Qdrant en la misma tarea
     # ---------------------------------------------------------
+
+    shared_dependencies = [
+        *database_dependencies,
+        *credentials.dependencies,
+        *execution_dependencies,
+    ]
 
     service = awsx.ecs.FargateService(
         "rig-example-service",
         cluster=cluster.arn,
+        desired_count=1,
         network_configuration=aws.ecs.ServiceNetworkConfigurationArgs(
             subnets=vpc.public_subnet_ids,
-
-            # No NAT Gateway, therefore task needs a public IP
             assign_public_ip=True,
-
-            security_groups=[
-                ecs_sg.id,
-            ],
+            security_groups=[ecs_sg.id],
         ),
-
-        health_check_grace_period_seconds=30,
-
+        # Registra la IP privada de esta tarea en Cloud Map.
+        service_registries=aws.ecs.ServiceServiceRegistriesArgs(
+            registry_arn=qdrant_discovery.arn,
+        ),
+        health_check_grace_period_seconds=60,
         task_definition_args=awsx.ecs.FargateServiceTaskDefinitionArgs(
-            # Total resources for the Fargate task
             cpu="512",
             memory="1024",
-            task_role={ "role_arn": roles["api"].arn },
-            execution_role={"role_arn": api_execution_role.arn},
+            task_role={
+                "role_arn": roles["api"].arn,
+            },
+            execution_role={
+                "role_arn": execution_role.arn,
+            },
             containers={
-
-                # -------------------------------------------------
-                # Axum
-                # -------------------------------------------------
-
                 "rig-example": (
                     awsx.ecs.TaskDefinitionContainerDefinitionArgs(
                         name="rig-example",
-
                         image=app_image_uri,
-
                         cpu=256,
                         memory=512,
-
                         essential=True,
-
-                        secrets=[awsx.ecs.TaskDefinitionSecretArgs(
-                            name="DATABASE_URL",
-                            value_from=database_secret.arn,
-                        )],
-
-                        environment=[
-                            awsx.ecs.TaskDefinitionKeyValuePairArgs(
-                                name="QDRANT_URL",
-                                value="http://127.0.0.1:6333",
+                        secrets=[
+                            secret(
+                                "DATABASE_URL",
+                                database_secret.arn,
                             ),
-                            awsx.ecs.TaskDefinitionKeyValuePairArgs(
-                                name="PYTHON_QUEUE_URL",
-                                value=queues["python"].url,
+                            secret(
+                                "RUSTFS_ACCESS_KEY",
+                                credentials.access_key_secret.arn,
                             ),
-                            awsx.ecs.TaskDefinitionKeyValuePairArgs(
-                                name="RUST_QUEUE_URL",
-                                value=queues["rust"].url,
-                            ),
-                            awsx.ecs.TaskDefinitionKeyValuePairArgs(
-                                name="S3_ENDPOINT",
-                                value=storage_endpoint,
-                            ),
-                            awsx.ecs.TaskDefinitionKeyValuePairArgs(
-                                name="S3_BUCKET",
-                                value="documents",
+                            secret(
+                                "RUSTFS_SECRET_KEY",
+                                credentials.secret_key_secret.arn,
                             ),
                         ],
-
+                        environment=[
+                            env("QDRANT_URL", QDRANT_LOCAL_URL),
+                            env("PYTHON_QUEUE_URL", queues["python"].url),
+                            env("RUST_QUEUE_URL", queues["rust"].url),
+                            env("S3_ENDPOINT", STORAGE_ENDPOINT),
+                            env("S3_BUCKET", "documents"),
+                            env("AWS_REGION", region),
+                            env("AWS_DEFAULT_REGION", region),
+                        ],
                         port_mappings=[
                             awsx.ecs.TaskDefinitionPortMappingArgs(
-                                container_port=container_port,
+                                container_port=CONTAINER_PORT,
                                 target_group=lb.default_target_group,
-                            )
+                            ),
                         ],
                     )
                 ),
-
-                # -------------------------------------------------
-                # Qdrant
-                # -------------------------------------------------
-
                 "qdrant": (
                     awsx.ecs.TaskDefinitionContainerDefinitionArgs(
                         name="qdrant",
-
-                        image="qdrant/qdrant:dev",
-
+                        image=config.get("qdrantImage") or "qdrant/qdrant:dev",
                         cpu=256,
                         memory=512,
-
                         essential=True,
-
                         port_mappings=[
-                            # REST API + dashboard
                             awsx.ecs.TaskDefinitionPortMappingArgs(
                                 container_port=QDRANT_PORT,
                                 target_group=qdrant_target_group,
                             ),
-
-                            # gRPC
                             awsx.ecs.TaskDefinitionPortMappingArgs(
                                 container_port=QDRANT_GRPC_PORT,
                             ),
@@ -432,90 +474,84 @@ def up_infra(
             },
         ),
         opts=pulumi.ResourceOptions(
-            depends_on=[*policies["api"], *database_dependencies],
+            depends_on=[
+                *policies["api"],
+                *shared_dependencies,
+                api_ingress,
+                qdrant_listener,
+            ],
         ),
     )
 
+    # ---------------------------------------------------------
+    # RustFS
+    # ---------------------------------------------------------
 
-    python_worker = create_worker(
-        name="python-worker",
-        cluster=cluster,
-        vpc=vpc,
-        security_group=ecs_sg,
-        image_uri=python_image_uri,
-        task_role=roles["python"],
-        queue_url=queues["python"].url,
-        storage_endpoint=storage_endpoint,
-        bucket_name="documents",
-        depends_on=policies["python"],
+    rustfs_task_role = aws.iam.Role(
+        "rustfs-task-role",
+        assume_role_policy=json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "ecs-tasks.amazonaws.com",
+                },
+                "Action": "sts:AssumeRole",
+            }],
+        }),
     )
-
-    rust_worker = create_worker(
-        name="rust-worker",
-        cluster=cluster,
-        vpc=vpc,
-        security_group=ecs_sg,
-        image_uri=rust_image_uri,
-        task_role=roles["rust"],
-        queue_url=queues["rust"].url,
-        storage_endpoint=storage_endpoint,
-        bucket_name="documents",
-        depends_on=policies["rust"],
-    )
-
-    #### EFS configuration
-
-    discovery = create_rustfs_discovery(vpc.vpc_id)
-    # ---------------------------------------------------------
-    # RustFS credentials
-    # ---------------------------------------------------------
-
-    credentials = create_rustfs_credentials()
-
-    # ---------------------------------------------------------
-    # RustFS Fargate service
-    # ---------------------------------------------------------
 
     rustfs = create_rustfs_service(
         cluster_arn=cluster.arn,
         subnet_ids=vpc.public_subnet_ids,
         task_security_group_id=rustfs_sg.id,
-
         execution_role_arn=credentials.execution_role.arn,
         task_role_arn=rustfs_task_role.arn,
-
         access_key_secret_arn=credentials.access_key_secret.arn,
         secret_key_secret_arn=credentials.secret_key_secret.arn,
-
         target_group_arn=rustfs_tg.arn,
-        discovery_service_arn=discovery.arn,
+        discovery_service_arn=rustfs_discovery.arn,
         depends_on=[
             rustfs_listener,
+            console_ingress,
             *credentials.dependencies,
         ],
     )
 
-    pulumi.export(
-        "rustfs_dashboard",
-        pulumi.Output.concat(
-            "http://",
-            lb.load_balancer.dns_name,
-            ":9001",
-        ),
-    )
+    # ---------------------------------------------------------
+    # Workers
+    # ---------------------------------------------------------
 
+    workers = {}
 
-    pulumi.export(
-        "python_worker_service",
-        python_worker.service.name,
-    )
-
-    pulumi.export(
-        "rust_worker_service",
-        rust_worker.service.name,
-    )
-
-
+    for worker_type, image_uri in [
+        ("python", python_image_uri),
+        ("rust", rust_image_uri),
+    ]:
+        workers[worker_type] = create_worker(
+            name=f"{worker_type}-worker",
+            cluster=cluster,
+            vpc=vpc,
+            security_group=ecs_sg,
+            image_uri=image_uri,
+            task_role=roles[worker_type],
+            queue_url=queues[worker_type].url,
+            storage_endpoint=STORAGE_ENDPOINT,
+            bucket_name="documents",
+            qdrant_url=QDRANT_PRIVATE_URL,
+            region=region,
+            database_url_secret_arn=database_secret.arn,
+            access_key_secret_arn=credentials.access_key_secret.arn,
+            secret_key_secret_arn=credentials.secret_key_secret.arn,
+            execution_role_arn=execution_role.arn,
+            depends_on=[
+                *policies[worker_type],
+                *shared_dependencies,
+                qdrant_discovery,
+                qdrant_rest_ingress,
+                qdrant_grpc_ingress,
+            ],
+        )
 
     # ---------------------------------------------------------
     # Outputs
@@ -530,11 +566,11 @@ def up_infra(
     )
 
     pulumi.export(
-        "qdrant_url",
+        "rustfs_dashboard",
         pulumi.Output.concat(
             "http://",
             lb.load_balancer.dns_name,
-            ":6333",
+            ":9001",
         ),
     )
 
@@ -547,69 +583,33 @@ def up_infra(
         ),
     )
 
-    pulumi.export(
-        "ecs_cluster",
-        cluster.name,
-    )
+    pulumi.export("qdrant_private_url", QDRANT_PRIVATE_URL)
+    pulumi.export("ecs_cluster", cluster.name)
+    pulumi.export("ecs_service", service.service.name)
 
-    pulumi.export(
-        "ecs_service",
-        service.service.name,
-    )
-
-
-def main() -> None:
-
-    region = aws.config.region
-    home_dir = os.path.expanduser("~")
-
-    pulumi.info(
-        f"region={region} home dir={home_dir}"
-    )
-
-    aws_credentials_path = os.path.join(
-        home_dir,
-        ".aws",
-    )
-
-    pulumi.info(
-        f"aws credentials path={aws_credentials_path}"
-    )
-
-    if not os.path.exists(aws_credentials_path):
-        pulumi.error(
-            f"The .aws directory is missing in "
-            f"{aws_credentials_path}."
+    for worker_type, worker in workers.items():
+        pulumi.export(
+            f"{worker_type}_worker_service",
+            worker.service.name,
         )
-        sys.exit(1)
 
-    # Create job infrastructure
 
-    # Colas SQS
-
+def main():
     queues = create_job_queues()
-
-    # Roles IAM y políticas
     roles, policies = configure_job_roles(queues)
-
-    # ---------------------------------------------------------
-    # ECR
-    # ---------------------------------------------------------
 
     app_repository = awsx.ecr.Repository(
         "rig-example-repository",
         force_delete=True,
     )
 
-
-    # Axum: conserva su nombre lógico actual
-    app_image = build_and_push_ecr_image(
+    app_image = awsx.ecr.Image(
         "rig-example",
-        app_repository,
-        "./app",
+        repository_url=app_repository.url,
+        context="./app",
+        platform="linux/amd64",
     )
 
-    # Nuevas imágenes de los workers
     python_image = build_worker_image(
         "python-worker",
         "./pyagents",
@@ -620,30 +620,13 @@ def main() -> None:
         "./rust-worker",
     )
 
-
-    app_image.image_uri.apply(
-        lambda uri: pulumi.info(
-            f"Image URI={uri}"
-        )
-    )
-
-    # ---------------------------------------------------------
-    # Infrastructure
-    # ---------------------------------------------------------
-    config = pulumi.Config()
-    #storage_endpoint = config.require("rustfsEndpoint")
-    storage_endpoint="http://rustfs.rig.internal:9000"
-
-    # Reutilizar infraestructura actual
     up_infra(
         app_image_uri=app_image.image_uri,
-        container_port=CONTAINER_PORT,
         python_image_uri=python_image.image_uri,
         rust_image_uri=rust_image.image_uri,
         queues=queues,
         roles=roles,
         policies=policies,
-        storage_endpoint=storage_endpoint,
     )
 
 

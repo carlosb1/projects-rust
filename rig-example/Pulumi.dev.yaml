@@ -5,3 +5,5 @@ config:
     secure: v1:ZKEsLB9GDBjBwBpZ:ffnwRRpQ/HE89SuxtMKxPV4Hq0SmE81T9RQakmcMifXz
   rig-example:rustfsSecretKey:
     secure: v1:q+MoQ2ZRgtWbv6W+:54VH37hp1HmsD7aH7/wXI9O/h/SRuZOVRj0af4i4FzEH0iWJPmjTjzh6Vw==
+  rig-example:dbPassword:
+    secure: v1:0vbzJctKEauj3UTk:ph4JThk7DTBpw7nac1WU4GLPNdJ0ZEJd
