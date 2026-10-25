@@ -3,6 +3,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+RUN mkdir -p /app/uploads \
+    && chown 65532:65532 /app/uploads
+
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 

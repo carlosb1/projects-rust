@@ -229,7 +229,7 @@ async fn process_report(job: &QueueJob, report_service: Arc<ReportService>, job_
     let remote_job = RemoteJob {
         job_id: job.id,
         task: "analyze_report".to_string(),
-        document_key: job.file_path.to_string_lossy().to_string(),
+        document_key:  "mocked_key_not_local_file_path".to_string(),
     };
     if let Some(job_publisher) = job_publisher.as_ref() {
         job_publisher.publish_python(&remote_job.clone()).await?;
@@ -313,8 +313,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let (tx, rx) = mpsc::channel::<QueueJob>(100);
     let queue = Arc::new(Queue::new(tx));
     let worker_jobs = queue.jobs.clone();
-
-
 
 
     let client  = search_engine::Client::new(qdrant_url, None)?;

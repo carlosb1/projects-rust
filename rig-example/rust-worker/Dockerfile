@@ -17,6 +17,11 @@ RUN apt-get update \
        ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /app
+
+RUN mkdir -p /app/uploads \
+    && chown 65532:65532 /app/uploads
+
 COPY --from=builder \
     /app/target/release/rust-worker \
     /usr/local/bin/rust-worker

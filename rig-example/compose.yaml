@@ -167,6 +167,9 @@ services:
       AWS_REGION: eu-west-1
       AWS_DEFAULT_REGION: eu-west-1
 
+      QDRANT_URL: http://qdrant:6333
+      DATABASE_URL: postgresql://rigadmin:${POSTGRES_PASSWORD:?required}@postgres:5432/rig?sslmode=disable
+
     depends_on:
       - elasticmq
       - rustfs
@@ -191,6 +194,9 @@ services:
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
       AWS_REGION: eu-west-1
       AWS_DEFAULT_REGION: eu-west-1
+      QDRANT_URL: http://qdrant:6333
+      DATABASE_URL: postgresql://rigadmin:${POSTGRES_PASSWORD:?required}@postgres:5432/rig?sslmode=disable
+
 
     depends_on:
       - elasticmq
