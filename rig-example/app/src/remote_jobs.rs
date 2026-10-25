@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Job {
+pub struct RemoteJob {
     pub job_id: Uuid,
     pub task: String,
     pub document_key: String,
@@ -41,14 +41,14 @@ impl JobPublisher {
 
     pub async fn publish_python(
         &self,
-        job: &Job,
+        job: &RemoteJob,
     ) -> anyhow::Result<()> {
         self.publish(&self.python_queue_url, job).await
     }
 
     pub async fn publish_rust(
         &self,
-        job: &Job,
+        job: &RemoteJob,
     ) -> anyhow::Result<()> {
         self.publish(&self.rust_queue_url, job).await
     }
@@ -56,7 +56,7 @@ impl JobPublisher {
     async fn publish(
         &self,
         queue_url: &str,
-        job: &Job,
+        job: &RemoteJob,
     ) -> anyhow::Result<()> {
         let body = serde_json::to_string(job)?;
 

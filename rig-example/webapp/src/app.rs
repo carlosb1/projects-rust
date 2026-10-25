@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-
+use uuid::Uuid;
 use crate::pages::{
     login::Login,
     home::Home,
@@ -24,7 +24,7 @@ pub enum Route {
 
 
     #[route("/uploads/:id")]
-    UploadReport { id: String },
+    UploadReport { id: Uuid },
 }
 
 #[component]

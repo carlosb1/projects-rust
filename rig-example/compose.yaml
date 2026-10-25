@@ -1,4 +1,23 @@
 services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: rig
+      POSTGRES_USER: rigadmin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rigadmin -d rig"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rig-network
+    restart: unless-stopped
+
   vllm:
     image: vllm/vllm-openai:v0.9.2
     gpus: all
@@ -100,6 +119,7 @@ services:
       - "127.0.0.1:3000:3000"
     environment:
       QDRANT_URL: http://qdrant:6333
+      DATABASE_URL: postgresql://rigadmin:${POSTGRES_PASSWORD:?required}@postgres:5432/rig?sslmode=disable
 
       SQS_ENDPOINT: http://elasticmq:9324
       PYTHON_QUEUE_URL: http://elasticmq:9324/000000000000/python-jobs
@@ -117,9 +137,14 @@ services:
       VLLM_MODEL: Qwen/Qwen3-0.6B
 
     depends_on:
-      - qdrant
-      - elasticmq
-      - rustfs
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      elasticmq:
+        condition: service_started
+      rustfs:
+        condition: service_started
     networks:
       - rig-network
     restart: unless-stopped
@@ -174,10 +199,22 @@ services:
       - rig-network
     restart: unless-stopped
 
+  elasticmq-ui:
+    image: softwaremill/elasticmq-ui:latest
+    ports:
+      - "127.0.0.1:9325:3000"
+    environment:
+      SQS_ENDPOINT: http://elasticmq:9324
+    depends_on:
+      - elasticmq
+    networks:
+      - rig-network
+
 networks:
   rig-network:
     driver: bridge
 
 
 volumes:
+  postgres-data:
   huggingface-cache:

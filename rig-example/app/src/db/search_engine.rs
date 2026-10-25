@@ -1,0 +1,76 @@
+use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
+use qdrant_client::Qdrant;
+use qdrant_client::qdrant::SearchPointsBuilder;
+use serde::{Deserialize, Serialize};
+
+pub static COLLECTION: &str = "boe_disposiciones";
+pub static LIMIT:  u64 = 20;
+
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SearchResult {
+    pub time: f64,
+    pub results: Vec<EntryResult>
+}
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct EntryResult {
+    pub score: f32,
+    pub payload: Vec<(String, String)>
+}
+
+pub struct Client {
+    client: Qdrant,
+    pub model: TextEmbedding,
+}
+
+impl Client {
+    pub fn new(qdrant_url: String, api_key: Option<String>) -> anyhow::Result<Client> {
+        tracing::debug!("Downloading model for embeddings");
+        let mut model = TextEmbedding::try_new(
+            InitOptions::new(EmbeddingModel::AllMiniLML6V2).with_show_download_progress(true),
+        )?;
+
+        let mut client = Qdrant::from_url(qdrant_url.as_str());
+        if api_key.is_some() {
+            client = client.api_key(api_key.unwrap().as_str());
+        }
+        let client = client.build()?;
+        Ok(Client{client, model})
+    }
+
+    //TODO add pagination
+    pub async fn search(&mut self, query: Vec<String>) -> anyhow::Result<Vec<SearchResult>> {
+        let mut search_results = Vec::new();
+        let embed = self.model.embed(query, None)?;
+
+        //ADD option for ands and paging, intersection of values.
+        for x in embed {
+            let embed = x.as_slice();
+            let search_request = SearchPointsBuilder::new(
+                COLLECTION,    // Collection name
+                embed, // Search vector
+                LIMIT,                  // Search limit, number of results to return
+            ).with_payload(true);
+            let results = self.client.search_points(search_request).await.unwrap();
+            let time: f64 = results.time;
+            let mut entries_to_return = Vec::<EntryResult>::new();
+            for x in results.result {
+                let score: f32 = x.score;
+
+                let mut payloads_to_return = Vec::new();
+                for (key,val) in x.payload.iter() {
+                    let k = key.to_string();
+                    if let Some(v) = val.as_str()  {
+                        payloads_to_return.push((k,v.clone()));
+                    }
+                }
+                entries_to_return.push(EntryResult{score,payload: payloads_to_return});
+            }
+            let s_result = SearchResult{time, results: entries_to_return };
+            search_results.push(s_result);
+        }
+        Ok(search_results)
+
+    }
+}
+

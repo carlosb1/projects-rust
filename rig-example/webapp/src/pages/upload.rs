@@ -148,35 +148,34 @@ pub fn Upload() -> Element {
                             };
 
                             // Añadimos card inmediatamente
-                            let upload_id = filename.clone();
+                            //let upload_id = filename.clone();
 
                             uploads.write().insert(
                                 0,
                                 UploadItem {
-                                    id: upload_id.clone(),
+                                    id: None,
                                     filename: filename.clone(),
                                     status: UploadStatus::Processing,
-                                    progress: 20,
                                     message: Some("Uploading...".into()),
                                 },
                             );
 
                             spawn(async move {
-                                match crate::api::uploads::upload_zip(
+                                 match crate::api::uploads::upload_zip(
                                     filename.clone(),
                                     data,
                                 )
                                 .await
                                 {
-                                    Ok(_) => {
+                                    Ok(uuid) => {
                                         let mut uploads = uploads.write();
 
                                         if let Some(upload) = uploads
                                             .iter_mut()
-                                            .find(|u| u.id == upload_id)
+                                            .find(|u| u.filename ==  filename.clone())
                                         {
+                                            upload.id  = Some(uuid);
                                             upload.status = UploadStatus::Completed;
-                                            upload.progress = 100;
                                             upload.message =
                                                 Some("Upload completed".into());
                                         }
@@ -187,10 +186,9 @@ pub fn Upload() -> Element {
 
                                         if let Some(upload) = uploads
                                             .iter_mut()
-                                            .find(|u| u.id == upload_id)
+                                            .find(|u| u.filename ==  filename.clone())
                                         {
                                             upload.status = UploadStatus::Failed;
-                                            upload.progress = 100;
                                             upload.message = Some(err);
                                         }
                                     }

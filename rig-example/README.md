@@ -1,3 +1,53 @@
+## Application database (PostgreSQL)
+
+Compose runs PostgreSQL 17 with a persistent `postgres-data` volume. Add a
+URL-safe password (letters and digits are sufficient) to your local `.env`:
+
+```dotenv
+POSTGRES_PASSWORD=replace_with_a_long_random_alphanumeric_password
+```
+
+Start it with `docker compose up -d postgres`, or start the API and its
+dependencies with `docker compose up -d app`. Compose waits for PostgreSQL's
+health check before starting the API and supplies `DATABASE_URL` using the
+`postgres` hostname. For an API running on your host, set:
+
+```bash
+export DATABASE_URL='postgresql://rigadmin:YOUR_PASSWORD@localhost:5432/rig?sslmode=disable'
+```
+
+Changing `POSTGRES_PASSWORD` after the volume has been initialized does not
+change the database user's password; update it inside PostgreSQL as well.
+
+For AWS, Pulumi provisions PostgreSQL 17 on RDS in two isolated subnets,
+with encrypted storage, seven days of backups, and access on port 5432 from
+the ECS task security group. The API receives `DATABASE_URL` through an ECS
+Secrets Manager reference, with `sslmode=require`.
+
+```bash
+pulumi config set --secret dbPassword
+# Optional settings (defaults shown):
+pulumi config set dbName rig
+pulumi config set dbInstanceClass db.t4g.micro
+pulumi preview
+pulumi up
+```
+
+RDS incurs AWS charges. Deletion protection is enabled; removing the database
+requires explicitly disabling it in the code and applying that change first.
+Deletion creates a final snapshot; its configured name must be unique if a
+snapshot from a previous deletion still exists. Pulumi exports
+`database_endpoint` and `database_name`, without exporting the credentials.
+After changing the secret, redeploy the ECS tasks so they receive its new value.
+
+This provisions the database and connection configuration. The Rust API does
+not yet read `DATABASE_URL` or persist records. The next application step is to
+add a PostgreSQL client such as SQLx, create a connection pool in `AppState`,
+and define migrations for the records the app needs. Qdrant remains the vector
+database; PostgreSQL can hold users, report metadata, and durable job status.
+
+RDS configuration reference: [Pulumi RDS Instance](https://www.pulumi.com/registry/packages/aws/api-docs/rds/instance/).
+
  # AWS Python S3 Bucket Pulumi Template
 
  A minimal Pulumi template for provisioning a single AWS S3 bucket using Python.

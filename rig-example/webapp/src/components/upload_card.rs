@@ -33,27 +33,15 @@ pub fn UploadCard(upload: UploadItem) -> Element {
                     }
                 }
 
-                span {
-                    class: "text-sm text-gray-500",
-                    "{upload.progress}%"
-                }
             }
 
-            div {
-                class: "w-full bg-gray-100 rounded-full h-2 mt-4",
-
-                div {
-                    class: "bg-blue-600 h-2 rounded-full",
-                    style: "width: {upload.progress}%;"
-                }
-            }
 
             div {
                 class: "flex justify-end mt-5",
 
                 Link {
                     to: Route::UploadReport {
-                        id: upload.id.clone(),
+                        id: upload.id.clone().unwrap_or(uuid::Uuid::nil()),
                     },
 
                     class: "

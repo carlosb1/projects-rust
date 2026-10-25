@@ -43,7 +43,6 @@ impl Queue {
         let job = QueueJob { id, file_path };
 
         self.jobs.insert(id, JobStatus::Queued);
-
         if let Err(err) = self.tx.try_send(job) {
             self.jobs.remove(&id);
             return Err(err);

@@ -1,9 +1,10 @@
 use gloo_net::http::Request;
+use uuid::Uuid;
 
 pub async fn upload_zip(
     filename: String,
     data: Vec<u8>,
-) -> Result<(), String> {
+) -> Result<Uuid, String> {
     let response = Request::post("/api/uploads")
         .header("Content-Type", "application/zip")
         .header("X-Filename", &filename)
@@ -20,14 +21,19 @@ pub async fn upload_zip(
         ));
     }
 
-    Ok(())
+    let uuid = response
+        .json::<Uuid>()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(uuid)
 }
 
-use crate::models::upload::UploadReport;
+use crate::models::upload::Report;
 
 pub async fn get_upload_report(
     upload_id: &str,
-) -> Result<UploadReport, String> {
+) -> Result<Report, String> {
     let url = format!("/api/uploads/{upload_id}/report");
 
     let response = Request::get(&url)
@@ -43,7 +49,7 @@ pub async fn get_upload_report(
     }
 
     response
-        .json::<UploadReport>()
+        .json::<Report>()
         .await
         .map_err(|e| e.to_string())
 }

@@ -14,6 +14,7 @@ from queues import create_job_queues
 from remotefs import create_rustfs_credentials, create_rustfs_storage, create_efs_policy, create_rustfs_service, \
     create_rustfs_discovery
 from workers import create_worker
+from database import create_database
 
 CONTAINER_PORT = 3000
 QDRANT_PORT = 6333
@@ -63,7 +64,10 @@ def up_infra(
         subnet_specs=[
             awsx.ec2.SubnetSpecArgs(
                 type=awsx.ec2.SubnetType.PUBLIC,
-            )
+            ),
+            awsx.ec2.SubnetSpecArgs(
+                type=awsx.ec2.SubnetType.ISOLATED,
+            ),
         ],
         nat_gateways=awsx.ec2.NatGatewayConfigurationArgs(
             strategy=awsx.ec2.NatGatewayStrategy.NONE,
@@ -152,6 +156,10 @@ def up_infra(
                 cidr_blocks=["0.0.0.0/0"],
             )
         ],
+    )
+
+    database_secret, api_execution_role, database_dependencies = create_database(
+        vpc.vpc_id, vpc.isolated_subnet_ids, ecs_sg.id,
     )
 
     # Security group for rust fs
@@ -337,6 +345,7 @@ def up_infra(
             cpu="512",
             memory="1024",
             task_role={ "role_arn": roles["api"].arn },
+            execution_role={"role_arn": api_execution_role.arn},
             containers={
 
                 # -------------------------------------------------
@@ -353,6 +362,11 @@ def up_infra(
                         memory=512,
 
                         essential=True,
+
+                        secrets=[awsx.ecs.TaskDefinitionSecretArgs(
+                            name="DATABASE_URL",
+                            value_from=database_secret.arn,
+                        )],
 
                         environment=[
                             awsx.ecs.TaskDefinitionKeyValuePairArgs(
@@ -418,7 +432,7 @@ def up_infra(
             },
         ),
         opts=pulumi.ResourceOptions(
-            depends_on=policies["api"],
+            depends_on=[*policies["api"], *database_dependencies],
         ),
     )
 
