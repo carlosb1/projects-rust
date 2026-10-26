@@ -116,6 +116,8 @@ def up_infra(
     vpc = awsx.ec2.Vpc(
         "rig-example-vpc",
         number_of_availability_zones=2,
+        enable_dns_hostnames=True,
+        enable_dns_support=True,
         subnet_specs=[
             awsx.ec2.SubnetSpecArgs(
                 type=awsx.ec2.SubnetType.PUBLIC,

@@ -33,9 +33,9 @@ def create_s3_client():
     return boto3.client(
         "s3",
         region_name=os.getenv("AWS_REGION", "eu-west-1"),
-        endpoint_url=os.getenv("S3_ENDPOINT") or None,
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        endpoint_url=os.environ["S3_ENDPOINT"],
+        aws_access_key_id=os.environ["RUSTFS_ACCESS_KEY"],
+        aws_secret_access_key=os.environ["RUSTFS_SECRET_KEY"],
         config=boto3.session.Config(s3={"addressing_style": "path"}),
     )
 

@@ -124,6 +124,8 @@ services:
       SQS_ENDPOINT: http://elasticmq:9324
       PYTHON_QUEUE_URL: http://elasticmq:9324/000000000000/python-jobs
       RUST_QUEUE_URL: http://elasticmq:9324/000000000000/rust-jobs
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
 
       S3_ENDPOINT: http://rustfs:9000
       S3_BUCKET: documents
@@ -161,6 +163,8 @@ services:
 
       S3_ENDPOINT: http://rustfs:9000
       S3_BUCKET: documents
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
 
       AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
@@ -189,7 +193,8 @@ services:
 
       S3_ENDPOINT: http://rustfs:9000
       S3_BUCKET: documents
-
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
       AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
       AWS_REGION: eu-west-1

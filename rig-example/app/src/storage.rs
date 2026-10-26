@@ -1,7 +1,7 @@
 
 use std::path::Path;
 use aws_sdk_s3::Client;
-use aws_sdk_s3::config::{BehaviorVersion, Region};
+use aws_sdk_s3::config::{BehaviorVersion, Credentials, Region};
 use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::{config::Builder};
 use axum::extract::multipart::Field;
@@ -22,10 +22,11 @@ pub enum StorageError {
 }
 
 impl Storage {
-    async fn new_s3_client(aws_region: &str, endpoint: &str) -> Client {
+    async fn new_s3_client(aws_region: &str, endpoint: &str, credentials: Credentials) -> Client {
         let shared_config = aws_config::defaults(BehaviorVersion::latest())
             .region(Region::new(aws_region.to_owned()))
             .endpoint_url(endpoint)
+            .credentials_provider(credentials)
             .load()
             .await;
 
@@ -56,8 +57,8 @@ impl Storage {
             false
         }
     }
-    pub async fn new(dir_uploads: String, aws_region: &str, endpoint: &str, bucket: &str) -> Result<Self, StorageError> {
-        let s3_client = Self::new_s3_client(aws_region, endpoint).await;
+    pub async fn new(dir_uploads: String, aws_region: &str, endpoint: &str, bucket: &str, credentials: Credentials) -> Result<Self, StorageError> {
+        let s3_client = Self::new_s3_client(aws_region, endpoint, credentials).await;
         let _ = Self::create_bucket_if_not_exists(&s3_client, bucket).await?;
         Ok(Storage { dir_uploads, s3_client, name_bucket: bucket.to_string() })
     }

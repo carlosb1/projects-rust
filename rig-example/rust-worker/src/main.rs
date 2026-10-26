@@ -6,6 +6,7 @@ mod storage;
 use std::path::PathBuf;
 use std::sync::Arc;
 use aws_config::{BehaviorVersion, Region};
+use aws_sdk_s3::config::Credentials;
 use aws_sdk_sqs::Client;
 use sqlx::postgres::PgPoolOptions;
 use tokio::fs;
@@ -83,6 +84,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "my-bucket".to_string()
     });
 
+    let credentials = Credentials::new(
+        std::env::var("RUSTFS_ACCESS_KEY")?,
+        std::env::var("RUSTFS_SECRET_KEY")?,
+        None,
+        None,
+        "rustfs",
+    );
+
     let qdrant_url = std::env::var("QDRANT_URL").unwrap_or("http://0.0.0.0:6333".to_string());
 
     tracing::info!("Using variables");
@@ -90,6 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("S3_ENDPOINT: {}", s3_endpoint);
     tracing::info!("S3_BUCKET: {}", s3_bucket);
     tracing::info!("QDRANT_URL: {}", qdrant_url);
+    tracing::info!("RUSTFS_ACCESS_KEY: {}", std::env::var("RUSTFS_ACCESS_KEY").unwrap_or_else(|_| "not set".to_string()));
     tracing::info!("--------------------------------");
 
     // Setting postgres
@@ -106,7 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Checking uploads directory");
     initialize_dir_uploads().await?;
 
-    let storage = match Storage::new(DIR_UPLOADS.to_string(), AWS_REGIOM, s3_endpoint.as_str(), s3_bucket.as_str()).await  {
+    let storage = match Storage::new(DIR_UPLOADS.to_string(), AWS_REGIOM, s3_endpoint.as_str(), s3_bucket.as_str(), credentials).await  {
         Ok(storage) => storage,
         Err(StorageError::CreateError) => {
             tracing::error!("Failed to create storage");

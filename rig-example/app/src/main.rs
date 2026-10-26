@@ -12,6 +12,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use std::path::Path;
 use std::sync::Arc;
+use aws_sdk_s3::config::Credentials;
 use tower_http::services::{ServeDir, ServeFile};
 use uuid::Uuid;
 
@@ -271,6 +272,14 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         "my-bucket".to_string()
     });
 
+        let credentials = Credentials::new(
+    std::env::var("RUSTFS_ACCESS_KEY")?,
+    std::env::var("RUSTFS_SECRET_KEY")?,
+    None,
+    None,
+    "rustfs",
+);
+
     let qdrant_url = std::env::var("QDRANT_URL").unwrap_or("http://0.0.0.0:6333".to_string());
 
     tracing::info!("Using variables");
@@ -278,6 +287,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     tracing::info!("S3_ENDPOINT: {}", s3_endpoint);
     tracing::info!("S3_BUCKET: {}", s3_bucket);
     tracing::info!("QDRANT_URL: {}", qdrant_url);
+    tracing::info!("S3_cREDENTIALS: {:?}", credentials);
     tracing::info!("--------------------------------");
 
     // Setting postgres
@@ -292,11 +302,9 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     // Initialize db
-
     let db = Arc::new(PostgresFileRepository::new(pool));
 
-
-    let storage = match Storage::new(DIR_UPLOADS.to_string(), AWS_REGIOM, s3_endpoint.as_str(), s3_bucket.as_str()).await  {
+    let storage = match Storage::new(DIR_UPLOADS.to_string(), AWS_REGIOM, s3_endpoint.as_str(), s3_bucket.as_str(), credentials).await  {
         Ok(storage) => storage,
         Err(StorageError::CreateError) => {
             tracing::error!("Failed to create storage");

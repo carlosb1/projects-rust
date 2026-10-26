@@ -42,7 +42,7 @@ def create_database(vpc_id, subnet_ids, app_security_group_id):
         publicly_accessible=False,
         backup_retention_period=7,
         auto_minor_version_upgrade=True,
-        deletion_protection=True,
+        deletion_protection=False,
         skip_final_snapshot=False,
         final_snapshot_identifier=f"rig-{pulumi.get_stack()}-postgres-final",
     )
