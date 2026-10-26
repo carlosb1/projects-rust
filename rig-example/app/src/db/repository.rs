@@ -9,6 +9,7 @@ use uuid::Uuid;
 #[sqlx(type_name = "report_status", rename_all = "snake_case")]
 pub enum ReportStatus {
     Pending,
+    Indexing,
     Processing,
     Completed,
     Failed,

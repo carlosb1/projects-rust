@@ -9,6 +9,7 @@ pub(crate) use crate::db::repository::{Report, ReportStatus, RepositoryError};
 pub enum DbReportStatus {
     Pending,
     Processing,
+    Indexing,
     Completed,
     Failed,
 }
@@ -27,6 +28,7 @@ impl From<DbReportStatus> for ReportStatus {
         match value {
             DbReportStatus::Pending => Self::Pending,
             DbReportStatus::Processing => Self::Processing,
+            DbReportStatus::Indexing => Self::Indexing,
             DbReportStatus::Completed => Self::Completed,
             DbReportStatus::Failed => Self::Failed,
         }
@@ -40,6 +42,7 @@ impl From<ReportStatus> for DbReportStatus {
             ReportStatus::Processing => Self::Processing,
             ReportStatus::Completed => Self::Completed,
             ReportStatus::Failed => Self::Failed,
+            ReportStatus::Indexing => Self::Indexing,
         }
     }
 }

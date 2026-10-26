@@ -1,6 +1,7 @@
 -- Add migration script here
 CREATE TYPE report_status AS ENUM (
     'pending',
+    'indexing',
     'processing',
     'completed',
     'failed'

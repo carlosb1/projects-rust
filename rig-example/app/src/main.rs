@@ -225,7 +225,8 @@ async fn process_report(job: &QueueJob, report_service: Arc<ReportService>, job_
         data.len()
     );
 
-    report_service.db.update_status(job.id, crate::db::types::ReportStatus::Processing).await?;
+    // Do we want to keep the status here..
+    report_service.db.update_status(job.id, crate::db::types::ReportStatus::Indexing).await?;
 
     let remote_job = RemoteJob {
         job_id: job.id,

@@ -1,0 +1,226 @@
+# pint_es_aliases.txt
+#
+# Extensión española del registro estándar de Pint.
+#
+# Uso:
+#   ureg = pint.UnitRegistry()
+#   ureg.load_definitions("pint_es_aliases.txt")
+#
+# Las expresiones con espacios requieren normalización previa:
+#   "metros cuadrados"     -> "metros_cuadrados"
+#   "kilómetros por hora"  -> "kilómetros_por_hora"
+#   "grados Celsius"       -> "grados_celsius"
+#   "por ciento"           -> "por_ciento"
+#
+# No convertir indiscriminadamente los símbolos a minúsculas:
+#   MW y mW representan unidades distintas.
+
+
+############################
+# LONGITUD
+############################
+
+@alias meter = metro = metros
+@alias kilometer = kilometro = kilometros = kilómetro = kilómetros
+@alias centimeter = centimetro = centimetros = centímetro = centímetros
+@alias millimeter = milimetro = milimetros = milímetro = milímetros
+@alias micrometer = micrometro = micrometros = micrómetro = micrómetros
+@alias nanometer = nanometro = nanometros = nanómetro = nanómetros
+
+@alias inch = pulgada = pulgadas
+@alias foot = pie = pies
+@alias yard = yarda = yardas
+@alias mile = milla = millas
+@alias nautical_mile = milla_nautica = millas_nauticas = milla_náutica = millas_náuticas
+
+
+############################
+# ÁREA
+############################
+
+metro_cuadrado = meter ** 2 = _ = metros_cuadrados
+kilometro_cuadrado = kilometer ** 2 = _ = kilometros_cuadrados = kilómetro_cuadrado = kilómetros_cuadrados
+centimetro_cuadrado = centimeter ** 2 = _ = centimetros_cuadrados = centímetro_cuadrado = centímetros_cuadrados
+milimetro_cuadrado = millimeter ** 2 = _ = milimetros_cuadrados = milímetro_cuadrado = milímetros_cuadrados
+
+@alias hectare = hectarea = hectareas = hectárea = hectáreas
+
+
+############################
+# VOLUMEN
+############################
+
+@alias liter = litro = litros
+@alias milliliter = mililitro = mililitros
+@alias centiliter = centilitro = centilitros
+@alias deciliter = decilitro = decilitros
+@alias microliter = microlitro = microlitros
+
+metro_cubico = meter ** 3 = _ = metros_cubicos = metro_cúbico = metros_cúbicos
+centimetro_cubico = centimeter ** 3 = _ = centimetros_cubicos = centímetro_cúbico = centímetros_cúbicos
+milimetro_cubico = millimeter ** 3 = _ = milimetros_cubicos = milímetro_cúbico = milímetros_cúbicos
+
+
+############################
+# MASA
+############################
+
+@alias gram = gramo = gramos
+@alias kilogram = kilogramo = kilogramos
+@alias milligram = miligramo = miligramos
+@alias microgram = microgramo = microgramos
+
+@alias metric_ton = tonelada = toneladas = tonelada_metrica = toneladas_metricas = tonelada_métrica = toneladas_métricas
+@alias pound = libra = libras
+@alias ounce = onza = onzas
+
+
+############################
+# TIEMPO
+############################
+
+@alias second = segundo = segundos
+@alias millisecond = milisegundo = milisegundos
+@alias microsecond = microsegundo = microsegundos
+@alias minute = minuto = minutos
+@alias hour = hora = horas
+@alias day = dia = dias = día = días
+@alias week = semana = semanas
+
+# Meses y años de calendario se deben tratar como fechas o duraciones
+# de calendario, según el contexto, no como intervalos físicos fijos.
+
+
+############################
+# VELOCIDAD
+############################
+
+kilometro_por_hora = kilometer / hour = _ = kilometros_por_hora = kilómetro_por_hora = kilómetros_por_hora = km_por_hora
+metro_por_segundo = meter / second = _ = metros_por_segundo = m_por_segundo
+kilometro_por_segundo = kilometer / second = _ = kilometros_por_segundo = kilómetro_por_segundo = kilómetros_por_segundo = km_por_segundo
+
+
+############################
+# ACELERACIÓN
+############################
+
+metro_por_segundo_cuadrado = meter / second ** 2 = _ = metros_por_segundo_cuadrado = metro_por_segundo_al_cuadrado = metros_por_segundo_al_cuadrado
+
+
+############################
+# TEMPERATURA
+############################
+
+@alias kelvin = kelvins
+@alias degree_Celsius = grado_celsius = grados_celsius = grado_centigrado = grados_centigrados = grado_centígrado = grados_centígrados
+@alias degree_Fahrenheit = grado_fahrenheit = grados_fahrenheit
+@alias degree_Rankine = grado_rankine = grados_rankine
+
+# Para construir temperaturas absolutas con offset:
+#   ureg.Quantity(25, "grados_celsius")
+#
+# No confundir una temperatura absoluta con una diferencia:
+#   ureg.Quantity(5, "delta_degC")
+
+
+############################
+# ÁNGULO
+############################
+
+@alias degree = grado = grados
+@alias radian = radianes = radián
+
+# "25 grados" es ambiguo en texto libre.
+# El extractor debe decidir si es ángulo o temperatura.
+# Aquí "grado" mantiene el significado angular.
+
+
+############################
+# FRECUENCIA
+############################
+
+@alias hertz = hercio = hercios
+@alias kilohertz = kilohercio = kilohercios
+@alias megahertz = megahercio = megahercios
+@alias gigahertz = gigahercio = gigahercios
+
+
+############################
+# FUERZA
+############################
+
+@alias newton = newtons
+@alias kilonewton = kilonewtons
+
+
+############################
+# ENERGÍA
+############################
+
+@alias joule = julio = julios
+@alias kilojoule = kilojulio = kilojulios
+@alias megajoule = megajulio = megajulios
+
+@alias calorie = caloria = calorias = caloría = calorías
+@alias kilocalorie = kilocaloria = kilocalorias = kilocaloría = kilocalorías
+
+@alias watt_hour = vatio_hora = vatios_hora
+@alias kilowatt_hour = kilovatio_hora = kilovatios_hora
+@alias megawatt_hour = megavatio_hora = megavatios_hora
+
+
+############################
+# POTENCIA
+############################
+
+@alias watt = vatio = vatios
+@alias kilowatt = kilovatio = kilovatios
+@alias megawatt = megavatio = megavatios
+@alias gigawatt = gigavatio = gigavatios
+
+
+############################
+# PRESIÓN
+############################
+
+@alias pascal = pascales
+@alias kilopascal = kilopascales
+@alias hectopascal = hectopascales
+@alias megapascal = megapascales
+
+@alias atmosphere = atmosfera = atmosferas = atmósfera = atmósferas
+
+
+############################
+# ELECTRICIDAD
+############################
+
+@alias ampere = amperio = amperios
+@alias milliampere = miliamperio = miliamperios
+@alias microampere = microamperio = microamperios
+
+@alias volt = voltio = voltios
+@alias kilovolt = kilovoltio = kilovoltios
+@alias millivolt = milivoltio = milivoltios
+
+@alias ohm = ohmio = ohmios
+@alias coulomb = culombio = culombios
+@alias farad = faradio = faradios
+@alias henry = henrio = henrios
+
+@alias weber = webers
+@alias tesla = teslas
+
+amperio_hora = ampere * hour = _ = amperios_hora
+miliamperio_hora = milliampere * hour = _ = miliamperios_hora
+
+# "siemens" ya existe en el registro estándar.
+
+
+############################
+# INFORMACIÓN DIGITAL
+############################
+
+@alias byte = octeto = octetos
+@alias kilobyte = kiloocteto = kilooctetos
+@alias megabyte = megaocteto = megaoctetos
