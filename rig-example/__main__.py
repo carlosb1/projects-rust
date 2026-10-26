@@ -21,11 +21,9 @@ CONTAINER_PORT = 3000
 QDRANT_PORT = 6333
 QDRANT_GRPC_PORT = 6334
 
-# Solo para la API, que comparte tarea con Qdrant.
-QDRANT_LOCAL_URL = f"http://127.0.0.1:{QDRANT_PORT}"
-
-# Namespace independiente del utilizado por RustFS.
+QDRANT_LOCAL_URL = f"http://127.0.0.1:{QDRANT_GRPC_PORT}"
 QDRANT_PRIVATE_URL = f"http://qdrant.vector.internal:{QDRANT_PORT}"
+QDRANT_PRIVATE_GRPC_URL = f"http://qdrant.vector.internal:{QDRANT_GRPC_PORT}"
 
 STORAGE_ENDPOINT = "http://rustfs.rig.internal:9000"
 
@@ -540,7 +538,7 @@ def up_infra(
             queue_url=queues[worker_type].url,
             storage_endpoint=STORAGE_ENDPOINT,
             bucket_name="documents",
-            qdrant_url=QDRANT_PRIVATE_URL,
+            qdrant_url=QDRANT_PRIVATE_GRPC_URL,
             region=region,
             database_url_secret_arn=database_secret.arn,
             access_key_secret_arn=credentials.access_key_secret.arn,

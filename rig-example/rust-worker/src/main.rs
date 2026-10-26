@@ -92,7 +92,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "rustfs",
     );
 
-    let qdrant_url = std::env::var("QDRANT_URL").unwrap_or("http://0.0.0.0:6333".to_string());
+    let qdrant_url = std::env::var("QDRANT_URL")
+        .unwrap_or_else(|_| "http://localhost:6334".to_owned());
 
     tracing::info!("Using variables");
     tracing::info!("DATABASE_URL: {}", database_url);

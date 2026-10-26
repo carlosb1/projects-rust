@@ -1,9 +1,10 @@
+use std::sync::Arc;
 use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
 use qdrant_client::Qdrant;
 use qdrant_client::qdrant::SearchPointsBuilder;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 
-pub static COLLECTION: &str = "boe_disposiciones";
 pub static LIMIT:  u64 = 20;
 
 
@@ -20,13 +21,14 @@ pub struct EntryResult {
 
 pub struct Client {
     client: Qdrant,
-    pub model: TextEmbedding,
+    pub model: Arc<Mutex<TextEmbedding>>,
+    bucket_collection: String,
 }
 
 impl Client {
-    pub fn new(qdrant_url: String, api_key: Option<String>) -> anyhow::Result<Client> {
-        tracing::debug!("Downloading model for embeddings");
-        let mut model = TextEmbedding::try_new(
+    pub fn new(qdrant_url: String, api_key: Option<String>, bucket_collection: String) -> anyhow::Result<Client> {
+        tracing::info!("Downloading model for embeddings");
+        let model = TextEmbedding::try_new(
             InitOptions::new(EmbeddingModel::AllMiniLML6V2).with_show_download_progress(true),
         )?;
 
@@ -35,24 +37,49 @@ impl Client {
             client = client.api_key(api_key.unwrap().as_str());
         }
         let client = client.build()?;
-        Ok(Client{client, model})
+        Ok(Client{client, model: Arc::new(Mutex::new(model)), bucket_collection})
+    }
+    pub async fn count(&self) -> anyhow::Result<usize> {
+        use qdrant_client::qdrant::CountPointsBuilder;
+
+        let response = self.client
+            .count(CountPointsBuilder::new(self.bucket_collection.as_str()).exact(true))
+            .await?;
+
+        let result = response.result
+            .ok_or_else(|| anyhow::anyhow!("Qdrant doesn't return pags"))?;
+
+        Ok(usize::try_from(result.count)?)
     }
 
-    //TODO add pagination
-    pub async fn search(&mut self, query: Vec<String>) -> anyhow::Result<Vec<SearchResult>> {
+    pub async fn search(&self, query: Vec<String>, page: usize, page_size: usize) -> anyhow::Result<Vec<SearchResult>> {
+        anyhow::ensure!(page >= 1, "page debe ser mayor o igual a 1");
+        anyhow::ensure!(page_size >= 1, "page_size debe ser mayor o igual a 1");
+
+        let limit = u64::try_from(page_size)?;
+        let offset = (page - 1)
+            .checked_mul(page_size)
+            .ok_or_else(|| anyhow::anyhow!("Too much pages and pagination"))?;
+        let offset = u64::try_from(offset)?;
+
         let mut search_results = Vec::new();
-        let embed = self.model.embed(query, None)?;
+        let embeddings = {
+            let mut model = self.model.lock()
+                .map_err(|_| anyhow::anyhow!("El mutex del modelo está envenenado"))?;
+            model.embed(query, None)?
+        };
 
         //ADD option for ands and paging, intersection of values.
-        for x in embed {
-            let embed = x.as_slice();
+        for embed in embeddings {
             let search_request = SearchPointsBuilder::new(
-                COLLECTION,    // Collection name
+                self.bucket_collection.as_str(),    // Collection name
                 embed, // Search vector
-                LIMIT,                  // Search limit, number of results to return
-            ).with_payload(true);
-            let results = self.client.search_points(search_request).await.unwrap();
+                limit,                  // Search limit, number of results to return
+            ).with_payload(true)
+            .offset(offset);
+            let results = self.client.search_points(search_request).await?;
             let time: f64 = results.time;
+            tracing::info!("Search results: {:?}", results.result.len());
             let mut entries_to_return = Vec::<EntryResult>::new();
             for x in results.result {
                 let score: f32 = x.score;

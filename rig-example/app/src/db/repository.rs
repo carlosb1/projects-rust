@@ -65,4 +65,6 @@ pub trait FileRepository: Send + Sync {
         &self,
         report_id: Uuid,
     ) -> Result<bool, RepositoryError>;
+
+    async fn list(&self) -> Result<Vec<Report>, RepositoryError>;
 }

@@ -32,6 +32,12 @@ pub fn Navbar() -> Element {
                         class: "text-gray-600 hover:text-blue-600 transition",
                         "Upload"
                     }
+
+                    Link {
+                        to: Route::Uploads {},
+                        class: "text-gray-600 hover:text-blue-600 transition",
+                        "My reports"
+                    }
                 }
             }
         }

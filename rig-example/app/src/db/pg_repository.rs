@@ -112,4 +112,19 @@ impl FileRepository for PostgresFileRepository {
 
         Ok(result.rows_affected() > 0)
     }
+
+    async fn list(&self) -> Result<Vec<Report>, RepositoryError> {
+        let rows = query_as::<_, ReportRow>(
+            r#"
+        SELECT id, report_id, path, status, created_at
+        FROM reports
+        ORDER BY created_at DESC, id DESC
+        "#,
+        )
+            .fetch_all(&self.pool)
+            .await
+            .map_err(map_error)?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
 }

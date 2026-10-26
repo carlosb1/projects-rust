@@ -63,6 +63,22 @@ pub fn Home() -> Element {
 
                             "Upload document"
                         }
+
+                       Link {
+                            to: Route::Uploads {},
+                            class: "
+                                bg-white
+                                border border-gray-300
+                                hover:bg-gray-50
+                                text-gray-700
+                                px-6 py-3
+                                rounded-lg
+                                font-medium
+                                transition
+                            ",
+
+                            "View my reports"
+                        }
                     }
                 }
             }

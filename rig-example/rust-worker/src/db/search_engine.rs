@@ -9,7 +9,6 @@ use rig_fastembed::{
 };
 
 
-pub static COLLECTION: &str = "boe_disposiciones";
 pub static LIMIT:  u64 = 20;
 
 
@@ -27,10 +26,11 @@ pub struct EntryResult {
 pub struct Client {
     client: Qdrant,
     pub model: EmbeddingModel,
+    bucket_collection: String,
 }
 
 impl Client {
-    pub fn new(qdrant_url: String, api_key: Option<String>) -> anyhow::Result<Client> {
+    pub fn new(qdrant_url: String, api_key: Option<String>, bucket_collection: String) -> anyhow::Result<Client> {
         tracing::debug!("Downloading model for embeddings");
         let model = FastembedClient::new()
             .embedding_model(&FastembedModel::AllMiniLML6V2)?;
@@ -40,7 +40,7 @@ impl Client {
             client = client.api_key(api_key.unwrap().as_str());
         }
         let client = client.build()?;
-        Ok(Client{client, model})
+        Ok(Client{client, model, bucket_collection})
     }
 
     //TODO add pagination
@@ -55,7 +55,7 @@ impl Client {
                 .collect();
 
             let search_request = SearchPointsBuilder::new(
-                COLLECTION,
+                self.bucket_collection.clone(),
                 vector,
                 LIMIT,
             ).with_payload(true);

@@ -53,3 +53,18 @@ pub async fn get_upload_report(
         .await
         .map_err(|e| e.to_string())
 }
+
+pub async fn list_reports() -> Result<Vec<Report>, String> {
+    let response = Request::get("/api/uploads")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.ok() {
+        return Err(format!("Failed to load reports: {}", response.status()));
+    }
+
+    response.json::<Vec<Report>>()
+        .await
+        .map_err(|e| e.to_string())
+}

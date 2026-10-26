@@ -1,8 +1,9 @@
 use dioxus::prelude::*;
 use crate::models::search::SearchResult;
+use crate::pages::search::HighlightedText;
 
 #[component]
-pub fn ResultCard(result: SearchResult) -> Element {
+pub fn ResultCard(result: SearchResult, query: String) -> Element {
     rsx! {
         article {
             class: "bg-white border border-gray-200 rounded-xl p-6 shadow-sm",
@@ -14,7 +15,11 @@ pub fn ResultCard(result: SearchResult) -> Element {
 
             p {
                 class: "text-gray-600",
-                "{result.excerpt}"
+
+                HighlightedText {
+                    text: result.excerpt,
+                    query,
+                }
             }
         }
     }

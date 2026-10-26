@@ -118,7 +118,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      QDRANT_URL: http://qdrant:6333
+      QDRANT_URL: http://qdrant:6334
       DATABASE_URL: postgresql://rigadmin:${POSTGRES_PASSWORD:?required}@postgres:5432/rig?sslmode=disable
 
       SQS_ENDPOINT: http://elasticmq:9324
@@ -171,7 +171,7 @@ services:
       AWS_REGION: eu-west-1
       AWS_DEFAULT_REGION: eu-west-1
 
-      QDRANT_URL: http://qdrant:6333
+      QDRANT_URL: http://qdrant:6334
       DATABASE_URL: postgresql://rigadmin:${POSTGRES_PASSWORD:?required}@postgres:5432/rig?sslmode=disable
 
     depends_on:
@@ -199,7 +199,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY}
       AWS_REGION: eu-west-1
       AWS_DEFAULT_REGION: eu-west-1
-      QDRANT_URL: http://qdrant:6333
+      QDRANT_URL: http://qdrant:6334
       DATABASE_URL: postgresql://rigadmin:${POSTGRES_PASSWORD:?required}@postgres:5432/rig?sslmode=disable
 
 

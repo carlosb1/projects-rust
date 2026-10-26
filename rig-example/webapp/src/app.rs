@@ -6,6 +6,7 @@ use crate::pages::{
     search::Search,
     upload::Upload,
     upload_report::UploadReport,
+    uploads::Uploads,
 };
 
 #[derive(Routable, Clone, PartialEq)]
@@ -25,6 +26,11 @@ pub enum Route {
 
     #[route("/uploads/:id")]
     UploadReport { id: Uuid },
+
+    #[route("/uploads")]
+    Uploads {},
+
+
 }
 
 #[component]

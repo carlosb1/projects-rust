@@ -4,12 +4,14 @@ import os
 import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from urllib.parse import urlsplit
 
 import boto3
 import psycopg2
 from fastembed import TextEmbedding
 from psycopg2.extras import RealDictCursor
 from qdrant_client import QdrantClient
+
 
 from src.docs import unzip_report, read_pdf
 from src.indexing import ReportIndexer
@@ -82,7 +84,7 @@ def main():
     sqs = create_sqs_client()
     s3 = create_s3_client()
     bucket = os.getenv("S3_BUCKET", "documents")
-    qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+    qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6334")
     cache_fast_embed = os.getenv(
             "FASTEMBED_CACHE_PATH",
             "/tmp/fastembed",
@@ -94,13 +96,19 @@ def main():
         return
 
 
-    collection = os.getenv(
-        "QDRANT_COLLECTION",
-        "reports_chunks",
-    )
+    collection = bucket
+
+    endpoint = urlsplit(qdrant_url)
+
+    if not endpoint.hostname:
+        raise ValueError("QDRANT_URL debe incluir esquema y host")
 
     qdrant_client = QdrantClient(
-        url=qdrant_url,
+        host=endpoint.hostname,
+        grpc_port=endpoint.port or 6334,
+        port=6333,
+        prefer_grpc=True,
+        https=endpoint.scheme == "https",
         api_key=None,
     )
 

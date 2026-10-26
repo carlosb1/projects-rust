@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 pub fn Pagination(
     current_page: usize,
     total_pages: usize,
+    on_page_change: EventHandler<usize>,
 ) -> Element {
     rsx! {
         nav {
@@ -11,7 +12,11 @@ pub fn Pagination(
 
             button {
                 disabled: current_page <= 1,
-
+                onclick: move |_| {
+                    if current_page > 1 {
+                        on_page_change.call(current_page - 1);
+                    }
+                },
                 class: "
                     px-3 py-2
                     border border-gray-300
@@ -27,8 +32,8 @@ pub fn Pagination(
             }
 
             for page in 1..=total_pages {
-
                 button {
+                    onclick: move |_| on_page_change.call(page),
                     class: if page == current_page {
                         "
                         px-3 py-2
@@ -55,6 +60,11 @@ pub fn Pagination(
 
             button {
                 disabled: current_page >= total_pages,
+                onclick: move |_| {
+                    if current_page < total_pages {
+                        on_page_change.call(current_page + 1);
+                    }
+                },
 
                 class: "
                     px-3 py-2

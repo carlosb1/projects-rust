@@ -8,34 +8,33 @@ use crate::components::{
 use crate::models::search::SearchResult;
 
 #[component]
+pub fn HighlightedText(text: String, query: String) -> Element {
+    if query.is_empty() {
+        return rsx! { "{text}" };
+    }
+
+    rsx! {
+        for (index, part) in text.split(&query).enumerate() {
+            if index > 0 {
+                mark {
+                    class: "bg-yellow-200 text-gray-900 rounded px-0.5",
+                    "{query}"
+                }
+            }
+
+            "{part}"
+        }
+    }
+}
+
+#[component]
 pub fn Search() -> Element {
     let mut query = use_signal(String::new);
     let mut results = use_signal(Vec::<SearchResult>::new);
     let mut current_page = use_signal(|| 1usize);
     let mut total_pages = use_signal(|| 1usize);
 
-
-    // Datos temporales hasta conectar Axum.
-    let mut temp_results = vec![
-        SearchResult {
-            title: "Real Decreto 123/2025".into(),
-            excerpt: "Este documento establece las condiciones aplicables a...".into(),
-            source: "BOE · página 12".into(),
-            score: 0.94,
-        },
-        SearchResult {
-            title: "Ley 18/2024".into(),
-            excerpt: "Las administraciones públicas deberán garantizar...".into(),
-            source: "BOE · página 4".into(),
-            score: 0.88,
-        },
-        SearchResult {
-            title: "Resolución de 4 de marzo".into(),
-            excerpt: "De acuerdo con lo establecido en el artículo...".into(),
-            source: "BOE · página 27".into(),
-            score: 0.82,
-        },
-    ];
+    let mut submitted_query = use_signal(String::new);
 
     rsx! {
         div {
@@ -63,9 +62,12 @@ pub fn Search() -> Element {
 
                     onsubmit: move |event| {
                         event.prevent_default();
-                        let mut tmp_results = temp_results.clone();
+                        //let mut tmp_results = temp_results.clone();
+                        //let mut tmp_results = Vec::new();
 
                         let query_value = query();
+                        submitted_query.set(query_value.clone());
+
 
                         spawn(async move {
                             match crate::api::search::search(
@@ -73,20 +75,17 @@ pub fn Search() -> Element {
                                 1,
                             ).await {
                                 Ok(response) => {
-                                    /*
                                     results.set(response.items);
                                     current_page.set(response.page);
                                     total_pages.set(response.total_pages);
-                                     */
-                                    results.set(tmp_results.clone());
-                                    current_page.set(1);
-                                    total_pages.set(1);
+                                    //results.set(tmp_results.clone());
+                                    //current_page.set(1);
+                                    //total_pages.set(1);
                                 }
-
                                 Err(err) => {
-                                    results.set(tmp_results.clone());
-                                    current_page.set(1);
-                                    total_pages.set(1);
+                                    //results.set(tmp_results.clone());
+                                    //current_page.set(1);
+                                    //total_pages.set(1);
                                     println!("Search error: {err}");
                                 }
                             }
@@ -155,15 +154,32 @@ pub fn Search() -> Element {
 
                     for result in results() {
                         ResultCard {
-                            result
+                            result,
+                            query: submitted_query(),
                         }
                     }
                 }
 
-                Pagination {
-                    current_page: 1,
-                    total_pages: 5
-                }
+            Pagination {
+                current_page: current_page(),
+                total_pages: total_pages(),
+                on_page_change: move |page| {
+                    let query_value = submitted_query();
+
+                    spawn(async move {
+                        match crate::api::search::search(&query_value, page).await {
+                            Ok(response) => {
+                                results.set(response.items);
+                                current_page.set(response.page);
+                                total_pages.set(response.total_pages);
+                            }
+                            Err(err) => {
+                                println!("Search error: {err}");
+                            }
+                        }
+                    });
+                },
+}
             }
         }
     }

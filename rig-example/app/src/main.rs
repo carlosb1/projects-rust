@@ -38,20 +38,71 @@ struct AppState {
 
 
 //TODO add endpoints for agents
-async fn search(State(arc_state): State<Arc<AppState>>,
-                Query(mut params):  Query<SearchQuery>) -> Json<SearchResponse> {
-    tracing::info!("search params: {:?}", params);
+async fn search(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<SearchQuery>,
+) -> std::result::Result<
+    Json<SearchResponse>,
+    (StatusCode, String),
+> {
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(10);
 
-    // llamar Qdrant / DB aquí...
+    if params.q.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "La consulta no puede estar vacía".to_owned(),
+        ));
+    }
 
-    Json(SearchResponse {
-        items: vec![],
+    if page == 0 || !(1..=100).contains(&page_size) {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "page debe ser >= 1 y page_size debe estar entre 1 y 100"
+                .to_owned(),
+        ));
+    }
+
+    if (page - 1).checked_mul(page_size).is_none() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "La paginación excede el rango permitido".to_owned(),
+        ));
+    }
+
+    let searches = state.search_service
+        .search(vec![params.q], page, page_size)
+        .await
+        .map_err(|err| {
+            tracing::error!("Search failed: {err:#}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "No se pudo completar la búsqueda".to_owned(),
+            )
+        })?;
+
+    let total = state.search_service.db.count()
+        .await
+        .map_err(|err| {
+            tracing::error!("Count failed: {err:#}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "No se pudo obtener el total de resultados".to_owned(),
+            )
+        })?;
+
+    let items = searches
+        .into_iter()
+        .flat_map(|search| search.results)
+        .map(SearchResult::from)
+        .collect();
+
+    Ok(Json(SearchResponse {
+        items,
         page,
-        total_pages: 1,
-        total: 0,
-    })
+        total_pages: total.div_ceil(page_size).max(1),
+        total,
+    }))
 }
 
 
@@ -64,8 +115,39 @@ struct SearchQuery {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SearchResult {
-    result: String,
+    pub title: String,
+    pub excerpt: String,
+    pub source: String,
+    pub score: f32,
 }
+
+impl From<search_engine::EntryResult> for SearchResult {
+    fn from(entry: search_engine::EntryResult) -> Self {
+        let mut payload: std::collections::HashMap<String, String> =
+            entry.payload.into_iter().collect();
+
+        let source = payload.remove("source").unwrap_or_default();
+        let excerpt = payload.remove("text").unwrap_or_default();
+
+        let title = payload.remove("title")
+            .filter(|title| !title.trim().is_empty())
+            .unwrap_or_else(|| {
+                if source.is_empty() {
+                    "Documento".to_owned()
+                } else {
+                    source.clone()
+                }
+            });
+
+        Self {
+            title,
+            excerpt,
+            source,
+            score: entry.score,
+        }
+    }
+}
+
 
 
 
@@ -139,6 +221,15 @@ async fn get_report(
     }
 }
 
+async fn list_reports(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<Report>>, StatusCode> {
+    state.report_service.db.list()
+        .await
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
 async fn health_check() -> Result<Json<HealthStatus>, StatusCode> {
     tracing::info!("health check");
     let data = HealthStatus {
@@ -184,9 +275,9 @@ pub struct SearchService {
 }
 
 impl SearchService {
-    pub async fn search(&mut self, text: Vec<String>) -> anyhow::Result<Vec<crate::db::search_engine::SearchResult>>{
+    pub async fn search(&self, text: Vec<String>, page: usize, page_size: usize) -> anyhow::Result<Vec<crate::db::search_engine::SearchResult>>{
         tracing::info!("Searching");
-        self.db.search(text).await
+        self.db.search(text, page, page_size).await
     }
 }
 
@@ -281,7 +372,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     "rustfs",
 );
 
-    let qdrant_url = std::env::var("QDRANT_URL").unwrap_or("http://0.0.0.0:6333".to_string());
+    let qdrant_url = std::env::var("QDRANT_URL")
+        .unwrap_or_else(|_| "http://localhost:6334".to_owned());
 
     tracing::info!("Using variables");
     tracing::info!("DATABASE_URL: {}", database_url);
@@ -324,7 +416,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let worker_jobs = queue.jobs.clone();
 
 
-    let client  = search_engine::Client::new(qdrant_url, None)?;
+    let client  = search_engine::Client::new(qdrant_url, None, s3_bucket.clone())?;
     let search_service = Arc::new(SearchService {
         db: client
     });
@@ -355,7 +447,7 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let api_routes = Router::new()
         .route("/health", get(health_check))
         .route("/search", get(search))
-        .route("/uploads", post(post_reports))
+        .route("/uploads", post(post_reports).get(list_reports))
         .route("/uploads/{id}/report", get(get_report))
         .layer(cors);
 
